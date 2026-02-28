@@ -1,0 +1,523 @@
+technology_stack:
+
+  project: "Counterparty Risk - Broker Verification Automation"
+  platform: "AWS (POC funding requirement)"
+  architecture_pattern: "Serverless event-driven + workflow orchestration"
+  date: "2026-02-28"
+
+  # Non-Functional Requirements (Input to tech selection)
+  nfrs:
+
+    performance:
+      - metric: "Workflow execution time"
+        target: "<2 hours per broker"
+        source: "Business goal (10x faster than manual 1-day process)"
+
+      - metric: "API response time"
+        target: "<500ms (p95)"
+        source: "User expectation for responsive dashboard"
+
+      - metric: "Document analysis latency"
+        target: "<30 seconds per LexisNexis report"
+        source: "Workflow step SLA"
+
+    accuracy:
+      - metric: "Risk detection recall"
+        target: ">95%"
+        rationale: "Must catch all actual risks (regulatory compliance)"
+
+      - metric: "False positive rate"
+        target: "<20%"
+        rationale: "Balance automation with human oversight"
+
+    scalability:
+      - metric: "Broker applications per year"
+        current: "1,000"
+        target: "5,000 (5x headroom)"
+
+      - metric: "Concurrent workflows"
+        target: "100 in-flight simultaneously"
+
+    cost:
+      - constraint: "POC budget"
+        target: "<$5,000/month (AWS funding, 3 months)"
+
+      - constraint: "Production budget"
+        target: "<$15,000/month (ROI: save 1 FTE = $8K/month)"
+
+    data_retention:
+      - data_type: "Verification records"
+        retention: "7 years"
+        format: "Open format (PostgreSQL + S3)"
+
+      - data_type: "LexisNexis PDFs"
+        retention: "7 years (immutable)"
+        format: "S3 with versioning, Glacier archival"
+
+    security:
+      - requirement: "Authentication"
+        target: "Corporate SSO (Azure AD or Okta)"
+
+      - requirement: "Data encryption"
+        target: "S3 encryption at rest, TLS in transit"
+
+      - requirement: "Secrets management"
+        target: "AWS Secrets Manager for API keys"
+
+  # Architectural Principles Applied
+  architectural_principles:
+
+    data_longevity:
+      principle: "Data lives longer than code (7+ years retention)"
+      decision: "Store broker records in RDS PostgreSQL, documents in S3"
+      rationale: |
+        - PostgreSQL = open format (any SQL client can query, portable)
+        - S3 PDFs = portable (download and archive anytime)
+        - Avoid: DynamoDB (proprietary API, lock-in)
+      anti_pattern_avoided: "Storing data in Step Functions execution history (90-day limit)"
+
+    minimal_data_stores:
+      principle: "Minimize data store fragmentation (reduce operational burden)"
+      stores:
+        - "PostgreSQL (RDS): Operational data (brokers, workflows, checks, approvals)"
+        - "S3: Documents (LexisNexis PDFs), audit logs (Parquet)"
+        - "Redis (ElastiCache): Cache (risk list lookups)"
+      total: 3
+      rationale: |
+        3 stores vs. 6+ if using DynamoDB + DocumentDB + OpenSearch + S3
+        - PostgreSQL handles all relational data (ACID, foreign keys)
+        - S3 handles all files and logs (cheap, durable)
+        - Redis handles high-speed lookups (risk list cache)
+
+    lifecycle_separation:
+      principle: "Separate components by evolution speed"
+      tiers:
+        - "UI: Monthly evolution (dashboard features) → Static site or SPA"
+        - "API: Quarterly evolution (new integrations) → Lambda (independent deployment)"
+        - "Workflow: Yearly evolution (steps stabilize) → Step Functions (versioned)"
+        - "Data: Rare schema changes → PostgreSQL + S3 (forward-compatible)"
+
+    twelve_factor:
+      - "Factor III (Config in Environment): DB connection, S3 bucket, API keys via env vars"
+      - "Factor IV (Backing Services): PostgreSQL, S3, LexisNexis = attached resources"
+      - "Factor VI (Stateless Processes): Lambda functions stateless, state in RDS"
+      - "Factor XI (Logs as Streams): All logs → CloudWatch → S3 (queryable with Athena)"
+
+  # Data Architecture
+  data_architecture:
+
+    operational_database:
+      technology: "Amazon RDS PostgreSQL 16"
+      instance: "db.t4g.medium (2 vCPU, 4GB RAM)"
+      storage: "100GB GP3 SSD"
+      backup: "Automated daily backups, 7-day retention"
+
+      schemas:
+        brokers:
+          tables:
+            - "brokers (broker_id, name, nmls_id, type, status, risk_level, ...)"
+            - "workflow_instances (instance_id, broker_id, workflow_type, status, ...)"
+            - "verification_steps (step_id, instance_id, step_name, status, ...)"
+            - "risk_checks (check_id, broker_id, check_type, findings_json, ...)"
+            - "approvals (approval_id, instance_id, decision, approver, ...)"
+            - "external_systems (system_id, system_name, endpoint, auth_config)"
+
+      why_postgresql:
+        - "Open format (not locked to AWS, exportable to CSV)"
+        - "JSONB support (flexible risk findings storage)"
+        - "Foreign keys (enforce referential integrity)"
+        - "Team familiarity (corporate IT knows SQL)"
+
+      why_not_dynamodb:
+        - "Proprietary API (vendor lock-in)"
+        - "No foreign keys (integrity in app code = fragile)"
+        - "Cost: More expensive at low volume (<10K writes/day)"
+
+      cost: "$120/month (instance $65 + storage $12 + backup $43)"
+
+    document_storage:
+      technology: "Amazon S3"
+      buckets:
+        - "broker-verification-documents-{env}"
+        - "broker-verification-audit-logs-{env}"
+
+      structure: |
+        /broker-verification-documents/
+          /lexisnexis-reports/{broker_id}/{report_id}.pdf
+          /salesforce-attachments/{application_id}/application.pdf
+          /generated-summaries/{broker_id}/risk-summary-{timestamp}.pdf
+
+        /broker-verification-audit-logs/
+          /workflow-events/year=2026/month=02/day=28/events-{timestamp}.parquet
+          /api-logs/year=2026/month=02/day=28/api-access-{timestamp}.json
+
+      lifecycle_policies:
+        - "HOT (S3 Standard): 0-90 days"
+        - "WARM (S3 IA): 90 days - 1 year"
+        - "COLD (Glacier): 1 year - 7 years"
+        - "Delete: >7 years (compliance retention met)"
+
+      versioning: "Enabled (immutable PDFs for legal discovery)"
+      encryption: "SSE-S3 (server-side encryption)"
+
+      cost: "$15/month (500GB × $0.023 + requests $5)"
+
+    cache_layer:
+      technology: "Amazon ElastiCache for Redis"
+      instance: "cache.t4g.micro (1GB)"
+      use_case: "High-risk party list lookup (Excel → Redis SET)"
+      pattern: |
+        1. Load Excel → Parse broker names → Store in Redis SET
+        2. Check if broker name in SET → O(1) lookup (vs. Excel Control-F)
+        3. Fuzzy matching: Levenshtein distance for name variations
+      ttl: "24 hours (refresh daily)"
+      cost: "$15/month"
+
+  # Technology Selections (by component)
+  component_technologies:
+
+    broker_verification_engine:
+      component: "SC-001 Broker_Verification_Engine"
+      technology: "AWS Step Functions (Standard Workflows)"
+
+      rationale:
+        - "Native AWS integration (Lambda, Bedrock, SNS)"
+        - "Human approval built-in (.waitForTaskToken pattern)"
+        - "State persistence (up to 1 year execution history)"
+        - "Workflow versioning (deploy new version without breaking in-flight brokers)"
+        - "Visual workflow designer (business-friendly)"
+
+      alternatives_considered:
+        temporal_io:
+          pros: "Open-source, code-first, portable"
+          cons: "Requires self-hosting (ECS/EKS), operational burden, POC budget"
+          decision: "Not selected for POC"
+
+        camunda:
+          pros: "Enterprise workflow engine, BPMN standard"
+          cons: "Java-based (team knows Python), requires RDS + ECS, overkill"
+          decision: "Not selected"
+
+      implementation:
+        state_machine_example: |
+          StartAt: IngestFromSalesforce
+          States:
+            IngestFromSalesforce: (Task → Lambda)
+            CheckRiskList: (Task → Lambda)
+            VerifyNMLS: (Task → Lambda)
+            EvaluateRiskLevel: (Choice → high/low)
+            RunLexisNexis: (Task → Lambda, conditional)
+            AnalyzeDocument: (Task → Lambda)
+            CalculateRiskScore: (Task → Lambda)
+            SubmitForHQReview: (Task → Lambda with .waitForTaskToken)
+            RecordDecision: (Task → Lambda)
+
+      cost: "$25/month (1,000 state transitions × $0.025/1000)"
+
+    hq_review_manager:
+      component: "SC-002 HQ_Review_Manager"
+      technology: "AWS Lambda + SNS + SES"
+      runtime: "Python 3.12 (FastAPI framework)"
+
+      implementation:
+        hq_review_notifier:
+          trigger: "Step Functions .waitForTaskToken"
+          actions:
+            - "Store task token in RDS (approvals table)"
+            - "Send email via SES to HQ team"
+            - "Send Slack notification (SNS → Lambda → Slack webhook)"
+
+        approval_api:
+          trigger: "API Gateway"
+          endpoints:
+            - "GET /api/reviews/pending"
+            - "POST /api/reviews/{id}/approve (resumes Step Functions)"
+            - "POST /api/reviews/{id}/reject"
+
+      cost: "$10/month (Lambda + SES $0.10/1000 emails)"
+
+    integration_orchestrator:
+      component: "SC-003 Integration_Orchestrator"
+      technology: "AWS Lambda (per integration)"
+      runtime: "Python 3.12"
+
+      integrations:
+
+        salesforce_ingest:
+          trigger: "EventBridge (Salesforce webhook → EventBridge → Lambda)"
+          library: "simple-salesforce (Python SDK)"
+          pattern: "Salesforce event → Start Step Functions workflow"
+          auth: "OAuth 2.0 (AWS Secrets Manager)"
+          cost: "$5/month"
+
+        nmls_verify:
+          integration_method: "Web scraping (Playwright) OR API if available"
+          pattern: "Call NMLS Consumer Access website → Parse HTML → Validate"
+          fallback: "Bright Data proxy if scraping blocked"
+          cost: "$10/month (Lambda + potential proxy fees)"
+
+        lexisnexis_check:
+          integration_method: "LexisNexis Bridger Insight API"
+          pattern: "API call → Download PDF → Store in S3 → Return S3 path"
+          auth: "API key (AWS Secrets Manager)"
+          rate_limiting: "Respect API limits (10 req/min)"
+          cost: "$20/month (Lambda) + LexisNexis API fees ($5-$50 per report)"
+
+      total_cost: "$35/month + variable LexisNexis fees"
+
+    risk_analyzer:
+      component: "SC-004 Risk_Analyzer"
+      technology: "AWS Bedrock (Claude Sonnet 3.5) + Lambda"
+      runtime: "Python 3.12"
+
+      ai_services:
+
+        document_analyzer:
+          ai_service: "AWS Bedrock - Claude Sonnet 3.5"
+          input: "LexisNexis PDF from S3"
+          output: "Structured JSON findings"
+          processing:
+            - "Extract PDF text (PyPDF2 or Textract if scanned)"
+            - "Call Bedrock with prompt + PDF text"
+            - "Parse JSON response → Store in RDS (findings_json)"
+          cost_per_report: "$0.015 (50K input tokens + 2K output)"
+          monthly_cost: "$15/month (100 reports/month in POC)"
+
+        name_matching:
+          algorithm: "Fuzzy string matching (Levenshtein distance)"
+          threshold: "85% similarity = potential match"
+          implementation: "Python library: fuzzywuzzy or rapidfuzz"
+
+        risk_scorer:
+          algorithm: "Weighted scoring model (rule-based for POC)"
+          scoring_logic: |
+            risk_score = 0.0
+            if risk_list_match: risk_score += 0.3 (30% weight)
+            if nmls_status != "active": risk_score += 0.2 (20% weight)
+            risk_score += (critical_findings × 0.30) + (high_findings × 0.20)
+            risk_score = min(risk_score, 1.0)
+
+            Classification:
+              risk_score >= 0.7 → "high"
+              risk_score >= 0.4 → "medium"
+              else → "low"
+          cost: "$5/month (Lambda, minimal compute)"
+
+      total_cost: "$25/month (POC volume)"
+
+    broker_registry:
+      component: "SC-005 Broker_Registry"
+      technology: "AWS Lambda + API Gateway + RDS"
+      runtime: "Python 3.12 (FastAPI framework)"
+      database: "PostgreSQL (RDS)"
+
+      endpoints:
+        - "GET /api/brokers (paginated list)"
+        - "GET /api/brokers/{broker_id}"
+        - "POST /api/brokers (create, rarely used)"
+        - "PUT /api/brokers/{broker_id}/status"
+        - "GET /api/brokers/search?name={name}"
+
+      api_gateway:
+        type: "REST API (request validation, throttling)"
+        authorization: "IAM (internal) or Cognito (if UI needed)"
+        throttling: "1000 req/sec"
+
+      cost: "$5/month (API Gateway + Lambda, low traffic)"
+
+  # Complete Technology Stack Summary
+  stack:
+
+    compute:
+      - technology: "AWS Lambda"
+        purpose: "Serverless compute for all APIs and workflow steps"
+        runtime: "Python 3.12"
+        rationale: "Pay-per-use (low POC volume), auto-scaling, no server management"
+        cost: "$50/month (1M invocations + 10GB-sec compute)"
+
+      - technology: "AWS Step Functions (Standard)"
+        purpose: "Workflow orchestration"
+        rationale: "Human approval, visual designer, AWS-native"
+        cost: "$25/month (1K state transitions)"
+
+    data:
+      - technology: "Amazon RDS PostgreSQL 16"
+        purpose: "Operational database"
+        instance: "db.t4g.medium (2vCPU, 4GB)"
+        storage: "100GB GP3"
+        cost: "$120/month"
+
+      - technology: "Amazon S3"
+        purpose: "Document storage + audit logs"
+        storage: "500GB (5,000 PDFs × 100KB each)"
+        lifecycle: "S3 Standard → S3 IA (90d) → Glacier (1yr)"
+        cost: "$15/month"
+
+      - technology: "Amazon ElastiCache for Redis"
+        purpose: "Risk list lookup cache"
+        instance: "cache.t4g.micro (1GB)"
+        cost: "$15/month"
+
+    integration:
+      - technology: "Amazon EventBridge"
+        purpose: "Salesforce webhook ingestion"
+        cost: "$1/month (1,000 events)"
+
+      - technology: "AWS Secrets Manager"
+        purpose: "Store API keys (LexisNexis, NMLS, Salesforce)"
+        cost: "$2/month (4 secrets)"
+
+      - technology: "Amazon SES"
+        purpose: "Email notifications to HQ team"
+        cost: "$1/month (100 emails)"
+
+    ai_ml:
+      - technology: "AWS Bedrock (Claude Sonnet 3.5)"
+        purpose: "LexisNexis PDF analysis"
+        usage: "100 reports/month × 50K input + 2K output tokens"
+        cost: "$15/month"
+
+    api:
+      - technology: "Amazon API Gateway (REST API)"
+        purpose: "Expose APIs for UI and integrations"
+        cost: "$5/month (10,000 requests)"
+
+    monitoring:
+      - technology: "Amazon CloudWatch"
+        purpose: "Logs, metrics, alarms"
+        cost: "$20/month (10GB logs + 50 metrics + 5 alarms)"
+
+      - technology: "AWS X-Ray"
+        purpose: "Distributed tracing (debug workflow failures)"
+        cost: "$5/month (100K traces)"
+
+    identity:
+      - technology: "AWS IAM"
+        purpose: "Service-to-service authentication"
+        cost: "$0 (free)"
+
+      - technology: "Amazon Cognito (optional)"
+        purpose: "User authentication for HQ dashboard"
+        cost: "$0 (free tier <50K MAUs)"
+
+  # Cost Summary
+  costs:
+
+    poc_phase:
+      compute: "$75 (Lambda + Step Functions)"
+      data: "$150 (RDS + S3 + Redis)"
+      integration: "$4 (EventBridge + Secrets + SES)"
+      ai: "$15 (Bedrock)"
+      api: "$5 (API Gateway)"
+      monitoring: "$25 (CloudWatch + X-Ray)"
+
+      subtotal: "$274/month"
+
+      variable:
+        lexisnexis_api: "$500-$5,000/month (volume-dependent, $5-50 per report)"
+
+      total: "$774 - $5,274/month"
+      status: "✅ Within POC budget (<$5,000/month)"
+
+    production_phase:
+      optimizations:
+        - "Aurora PostgreSQL Serverless v2: $120/mo → $60/mo (50% savings)"
+        - "Claude Haiku for simple extraction: $15/mo → $5/mo (66% savings)"
+        - "Lambda reserved concurrency: Add $10/mo, improve latency 200ms"
+
+      estimated_cost: "$600 - $5,500/month"
+
+      roi:
+        manual_cost: "$8,000/month (1 FTE back-office analyst)"
+        automation_cost: "$5,500/month (worst case)"
+        net_savings: "$2,500/month = $30,000/year"
+        payback_period: "6 months (POC cost $15K ÷ savings $2.5K/mo)"
+
+  # Fitness Functions (NFRs as Tests)
+  fitness_functions:
+
+    - name: "workflow_execution_time"
+      nfr: "Workflow execution time <2 hours per broker"
+      test: "End-to-end integration test (Salesforce → final approval)"
+      measurement: "Step Functions execution duration (CloudWatch metric)"
+      target: "<2 hours (p95)"
+      alert: "If p95 >2.5 hours, investigate bottleneck (likely LexisNexis API)"
+
+    - name: "api_response_time"
+      nfr: "API response time <500ms (p95)"
+      test: "Load test: 100 concurrent GET /api/brokers requests"
+      measurement: "API Gateway latency metric"
+      target: "<500ms (p95)"
+      alert: "If p95 >500ms, add RDS indexes or scale instance"
+
+    - name: "document_analysis_latency"
+      nfr: "AI analysis <30 seconds per report"
+      test: "Invoke document_analyzer Lambda with sample 10-page PDF"
+      measurement: "Lambda duration + Bedrock API latency"
+      target: "<30 seconds"
+      alert: "If >30s, optimize: reduce PDF size, use streaming, or batch"
+
+    - name: "risk_detection_recall"
+      nfr: "Risk detection >95% recall"
+      test: "Manual validation: 100 sample reports (AI vs. human review)"
+      measurement: "True Positives / (True Positives + False Negatives)"
+      target: ">95%"
+      validation: "Review false negatives → improve prompt engineering"
+
+    - name: "false_positive_rate"
+      nfr: "False positives <20%"
+      test: "Measure: % flagged brokers HQ approves (false alarms)"
+      measurement: "COUNT(approved WHERE risk=high) / COUNT(risk=high)"
+      target: "<20%"
+      tuning: "If >20%, increase risk threshold (0.7 → 0.8)"
+
+    - name: "concurrent_workflows"
+      nfr: "Support 100 concurrent broker verifications"
+      test: "Start 100 Step Functions workflows simultaneously"
+      measurement: "Step Functions throttling errors (CloudWatch)"
+      target: "0 throttling errors"
+      alert: "If throttled, request AWS quota increase"
+
+  # Evolution Strategy
+  evolution:
+
+    poc_phase:
+      scope: "100 broker verifications (real data, limited scale)"
+      duration: "3 months"
+      technologies: "Current stack (serverless, pay-per-use)"
+      cost: "$774 - $5,274/month"
+
+      success_criteria:
+        - "80% reduction in manual effort (10 steps → 2 steps)"
+        - ">90% AI accuracy (matches human judgment)"
+        - "<2 hour workflow execution time"
+
+      decision: "If successful → Production Phase"
+
+    production_phase:
+      scope: "1,000+ verifications/month"
+
+      optimizations:
+        - "Aurora PostgreSQL Serverless v2 (pay-per-use scaling)"
+        - "Claude Haiku for simple extraction (10x cheaper)"
+        - "Lambda reserved concurrency (avoid cold starts)"
+        - "CloudFront CDN for static assets (if building UI)"
+
+      cost: "$600 - $5,500/month"
+      roi: "$30,000/year savings (1 FTE eliminated)"
+
+    future_enhancements:
+      - name: "ML risk scoring"
+        current: "Rule-based (if-then logic)"
+        future: "SageMaker model trained on historical approvals"
+        benefit: "Reduce false positives 20% → 10%"
+
+      - name: "Real-time alerts"
+        current: "Email notifications"
+        future: "Slack bot + mobile push (SNS → Lambda → Slack/Expo)"
+        benefit: "Reduce approval time 2 hours → 30 minutes"
+
+      - name: "NMLS API integration"
+        current: "Web scraping (fragile)"
+        future: "Official NMLS API (if available)"
+        benefit: "More reliable, faster, no proxy fees"

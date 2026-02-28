@@ -1,0 +1,401 @@
+solution_architecture:
+
+  project: "Counterparty Risk - Broker Verification Automation"
+  client: "PennyMac Financial Services"
+  date: "2026-02-28"
+
+  # Archetype Selection
+  archetype: "Workflow Orchestrator"
+
+  archetype_rationale: |
+    Primary archetype is Workflow Orchestrator based on keyword analysis:
+    - "multi-step process" (10 sequential verification steps)
+    - "approval" (HQ team escalation and decision)
+    - "workflow" (broker onboarding/renewal process)
+    - "human-in-the-loop" (wait for HQ review before finalizing)
+    - "long-running" (verification can take hours/days)
+
+    The broker verification process exhibits all characteristics of Workflow Orchestrator archetype:
+    ✅ Multi-step process with defined sequence (10 steps)
+    ✅ Human approvals required (HQ team final decision)
+    ✅ Long-running processes (hours to days for completion)
+    ✅ Pause/resume capability (wait for external input)
+    ✅ State management (track which step each broker is in)
+
+  secondary_patterns:
+    - "Integration Platform (Salesforce, NMLS, LexisNexis)"
+    - "System of Record (broker master data)"
+    - "Analytics Platform (AI-powered document analysis, risk scoring)"
+
+  # Domain Ontology
+  ontology:
+
+    entity_types:
+
+      Broker:
+        extends: "MasterEntity (from System of Record archetype)"
+        description: "Mortgage broker applying for or renewing PennyMac network access"
+        properties:
+          - broker_id: string (primary key)
+          - broker_name: string
+          - nmls_id: string (National Mortgage Licensing System ID)
+          - broker_type: enum [TPO, PCG]
+          - status: enum [pending, active, suspended, rejected]
+          - risk_level: enum [low, medium, high]
+          - verification_status: enum [not_started, in_progress, completed, flagged]
+          - onboarding_date: date
+          - last_renewal_date: date
+          - created_at: datetime
+          - updated_at: datetime
+
+      WorkflowInstance:
+        extends: "WorkflowInstance (from Workflow Orchestrator archetype)"
+        description: "Execution of broker verification workflow for specific application"
+        properties:
+          - instance_id: string (primary key)
+          - broker_id: string (foreign key → Broker)
+          - workflow_type: enum [new_broker_verification, broker_renewal]
+          - status: enum [pending, in_verification, flagged, approved, rejected, failed]
+          - current_step: enum [salesforce_ingestion, risk_list_check, nmls_verification,
+                               lexisnexis_check, document_analysis, risk_scoring,
+                               hq_review, completed]
+          - started_at: datetime
+          - completed_at: datetime
+          - created_at: datetime
+        relationships:
+          - for_broker: Broker (many-to-one)
+          - has_steps: VerificationStep[] (one-to-many)
+          - has_approval: Approval (one-to-one, optional)
+
+      VerificationStep:
+        extends: "Step (from Workflow Orchestrator archetype)"
+        description: "Individual verification step in workflow"
+        properties:
+          - step_id: string (primary key)
+          - instance_id: string (foreign key → WorkflowInstance)
+          - step_name: enum [salesforce_ingestion, risk_list_check, nmls_verification,
+                            lexisnexis_check, document_analysis, risk_scoring, hq_review]
+          - step_type: enum [automated, conditional, human_approval]
+          - status: enum [pending, in_progress, completed, failed, skipped]
+          - started_at: datetime
+          - completed_at: datetime
+          - error_message: text (if failed)
+        relationships:
+          - part_of: WorkflowInstance (many-to-one)
+
+      RiskCheck:
+        description: "Result of a risk verification check (risk list, NMLS, LexisNexis)"
+        properties:
+          - check_id: string (primary key)
+          - broker_id: string (foreign key → Broker)
+          - check_type: enum [risk_list, nmls, lexisnexis]
+          - status: enum [pending, passed, failed, flagged]
+          - findings_json: jsonb (structured findings data)
+          - confidence_score: float (0.0 - 1.0)
+          - checked_at: datetime
+        relationships:
+          - for_broker: Broker (many-to-one)
+          - has_findings: RiskFinding[] (one-to-many)
+
+      RiskFinding:
+        description: "Individual risk indicator found during verification"
+        properties:
+          - finding_id: string (primary key)
+          - check_id: string (foreign key → RiskCheck)
+          - finding_type: enum [litigation, criminal, regulatory, financial, name_match]
+          - severity: enum [critical, high, medium, low]
+          - description: text
+          - source: string (e.g., "LexisNexis page 3", "NMLS record")
+          - source_page: int (for PDF sources)
+          - incident_date: date (when incident occurred)
+          - flagged_by: enum [ai, manual]
+          - created_at: datetime
+        relationships:
+          - from_check: RiskCheck (many-to-one)
+
+      Approval:
+        extends: "Approval (from Workflow Orchestrator archetype)"
+        description: "HQ team review and decision"
+        properties:
+          - approval_id: string (primary key)
+          - instance_id: string (foreign key → WorkflowInstance)
+          - decision: enum [approved, rejected, needs_more_info]
+          - approver: string (user ID or email)
+          - approval_date: datetime
+          - review_notes: text
+          - created_at: datetime
+        relationships:
+          - for_workflow: WorkflowInstance (one-to-one)
+
+      ExternalSystem:
+        extends: "System (from Integration Platform archetype)"
+        description: "External system integration (Salesforce, NMLS, LexisNexis)"
+        properties:
+          - system_id: string (primary key)
+          - system_name: string
+          - system_type: enum [crm, api, web_service]
+          - endpoint: string (URL or connection string)
+          - auth_type: enum [oauth, api_key, basic_auth]
+          - is_active: boolean
+          - last_sync: datetime
+
+  # Solution Components (instantiated from archetypes)
+  solution_components:
+
+    - component_id: SC-001
+      name: "Broker_Verification_Engine"
+      archetype_component: "Workflow_Engine (from Workflow Orchestrator)"
+      entity_types_owned: [WorkflowInstance, VerificationStep]
+
+      purpose: "Orchestrate multi-step broker verification workflow with human approval"
+
+      operations:
+        - start_verification(broker_id, workflow_type) → instance_id
+        - advance_to_next_step(instance_id)
+        - pause_for_review(instance_id, risk_findings)
+        - resume_after_approval(instance_id, decision)
+        - cancel_verification(instance_id, reason)
+        - get_workflow_status(instance_id) → status_object
+        - retry_failed_step(instance_id, step_name)
+
+      workflow_definition: |
+        1. Salesforce Data Ingestion (automated)
+        2. High-Risk Party List Check (automated)
+        3. NMLS ID Verification (automated)
+        4. Risk Level Evaluation (conditional)
+           - If risk_level = "high" → Continue to step 5
+           - If risk_level = "low" → Skip to step 7
+        5. LexisNexis Background Check (automated, conditional)
+        6. AI Document Analysis (automated)
+        7. Risk Score Calculation (automated)
+        8. HQ Team Review (human approval, waitForTaskToken)
+        9. Record Final Decision (automated)
+
+      api_endpoints:
+        - "POST /api/verification/start"
+        - "GET /api/verification/{instance_id}"
+        - "POST /api/verification/{instance_id}/resume"
+        - "DELETE /api/verification/{instance_id}"
+
+      team_ownership: "Automation Engineering Team"
+
+    - component_id: SC-002
+      name: "HQ_Review_Manager"
+      archetype_component: "Approval_Manager (from Workflow Orchestrator)"
+      entity_types_owned: [Approval]
+
+      purpose: "Manage human-in-the-loop approvals for flagged brokers"
+
+      operations:
+        - submit_for_review(instance_id, risk_findings) → approval_id
+        - record_decision(approval_id, approver, decision, notes)
+        - escalate_to_senior_review(approval_id)
+        - get_pending_reviews(approver_role) → approval[]
+        - send_review_notification(approver, approval_id)
+        - get_approval_history(broker_id) → approval[]
+
+      notification_channels:
+        - email: "SES email to HQ team with review link"
+        - slack: "SNS → Lambda → Slack webhook (high-severity findings)"
+        - dashboard: "In-app notification (review queue)"
+
+      api_endpoints:
+        - "GET /api/reviews/pending"
+        - "POST /api/reviews/{approval_id}/approve"
+        - "POST /api/reviews/{approval_id}/reject"
+        - "POST /api/reviews/{approval_id}/escalate"
+
+      team_ownership: "Back Office Systems Team"
+
+    - component_id: SC-003
+      name: "Integration_Orchestrator"
+      archetype_component: "ETL_Engine + API_Orchestrator (from Integration Platform)"
+      entity_types_owned: [ExternalSystem]
+
+      purpose: "Integrate with Salesforce, NMLS, LexisNexis"
+
+      operations:
+        - ingest_from_salesforce(application_id) → broker_data
+        - verify_nmls(broker_name, nmls_id) → nmls_verification_result
+        - run_lexisnexis_check(broker_id) → lexisnexis_report_url
+        - parse_document(document_url) → extracted_text
+        - handle_integration_error(system_id, error)
+        - test_connection(system_id) → health_status
+
+      integrations:
+
+        salesforce:
+          pattern: "Event-driven (Salesforce webhook → EventBridge → Lambda)"
+          data_flow: "Salesforce application created → EventBridge event → Start verification workflow"
+          auth: "OAuth 2.0 (stored in AWS Secrets Manager)"
+
+        nmls:
+          pattern: "API call or web scraping (if API unavailable)"
+          data_flow: "Broker name + NMLS ID → NMLS lookup → Validation result"
+          fallback: "If web scraping blocked, use Bright Data proxy"
+
+        lexisnexis:
+          pattern: "REST API → PDF download → S3 storage"
+          data_flow: "Broker ID → LexisNexis Bridger Insight API → PDF report → S3"
+          rate_limiting: "Respect API limits (e.g., 10 requests/minute)"
+
+      api_endpoints:
+        - "POST /api/integrations/salesforce/sync"
+        - "POST /api/integrations/nmls/verify"
+        - "POST /api/integrations/lexisnexis/check"
+        - "GET /api/integrations/health"
+
+      team_ownership: "Integration Team"
+
+    - component_id: SC-004
+      name: "Risk_Analyzer"
+      archetype_component: "Performance_Analyzer (from Analytics Platform, AI-powered)"
+      entity_types_owned: [RiskCheck, RiskFinding]
+
+      purpose: "AI-powered document analysis and risk scoring"
+
+      operations:
+        - check_risk_list(broker_name_variations) → matches[]
+        - analyze_lexisnexis_report(pdf_url) → findings[]
+        - calculate_risk_score(all_checks) → confidence_score
+        - identify_critical_findings(findings) → critical_findings[]
+        - generate_summary_report(broker_id) → risk_summary_json
+
+      ai_components:
+
+        document_analyzer:
+          purpose: "Parse LexisNexis PDFs, extract risk indicators"
+          prompt_engineering: |
+            Analyze background check report for mortgage broker.
+            Extract ALL risk indicators:
+            1. Litigation (open lawsuits, judgments, liens)
+            2. Criminal records (convictions, arrests, charges)
+            3. Regulatory actions (CFPB complaints, license issues)
+            4. Adverse financial (bankruptcies, foreclosures, defaults)
+
+            For each finding: severity, category, description, source page, date
+            Return structured JSON only.
+
+        name_matching:
+          purpose: "Match broker name variations against risk list"
+          algorithm: "Fuzzy string matching (Levenshtein distance)"
+          threshold: "85% similarity = potential match"
+
+        risk_scoring:
+          purpose: "Calculate overall risk confidence score"
+          inputs: [risk_list_match, nmls_status, lexisnexis_findings_count, severity_distribution]
+          output: "Risk score 0.0 (low) to 1.0 (high)"
+          model: "Rule-based for POC, ML model for production"
+
+      api_endpoints:
+        - "POST /api/risk/analyze"
+        - "GET /api/risk/{broker_id}/score"
+        - "GET /api/risk/{broker_id}/findings"
+
+      team_ownership: "AI/ML Engineering Team"
+
+    - component_id: SC-005
+      name: "Broker_Registry"
+      archetype_component: "Entity_Repository (from System of Record)"
+      entity_types_owned: [Broker]
+
+      purpose: "Master data repository for broker records"
+
+      operations:
+        - create_broker(broker_data) → broker_id
+        - update_broker_status(broker_id, new_status)
+        - get_broker_details(broker_id) → broker_object
+        - search_brokers(filters) → broker[]
+        - get_broker_history(broker_id) → audit_log[]
+        - export_brokers(filters) → csv_file
+
+      data_quality:
+        - "Validate NMLS ID format (7-digit number)"
+        - "De-duplicate broker records (match by NMLS ID)"
+        - "Enforce unique constraints (broker_id, nmls_id)"
+
+      api_endpoints:
+        - "GET /api/brokers"
+        - "GET /api/brokers/{broker_id}"
+        - "PUT /api/brokers/{broker_id}/status"
+        - "GET /api/brokers/search"
+
+      team_ownership: "Master Data Team"
+
+  # Required Capabilities (handed to tech-stack-mapper)
+  required_capabilities:
+
+    workflow_orchestration:
+      must_have:
+        - "Stateful workflow execution (pause/resume)"
+        - "Long-running processes (hours/days)"
+        - "Human-in-the-loop (wait for external approval)"
+        - "Error handling (retry failed steps)"
+        - "Workflow versioning (update without breaking in-flight workflows)"
+      nice_to_have:
+        - "Visual workflow designer"
+        - "Parallel execution (run independent steps concurrently)"
+        - "Conditional branching (if/else logic)"
+
+    api_orchestration:
+      must_have:
+        - "Multi-step API coordination (Salesforce → NMLS → LexisNexis)"
+        - "Error handling (retry, dead-letter queue)"
+        - "Request/response transformation"
+        - "Authentication handling (OAuth, API keys)"
+      nice_to_have:
+        - "Visual workflow designer"
+        - "Rate limiting enforcement"
+
+    document_analysis:
+      must_have:
+        - "PDF parsing (extract text from LexisNexis reports)"
+        - "Natural language understanding (identify risk indicators)"
+        - "Structured output (JSON findings)"
+      nice_to_have:
+        - "OCR (if scanned documents)"
+        - "Table extraction"
+
+    storage:
+      must_have:
+        - "ACID transactions (broker data consistency)"
+        - "Audit trail (who changed what, when)"
+        - "Query performance (search brokers)"
+      nice_to_have:
+        - "JSONB support (flexible risk findings storage)"
+        - "Full-text search"
+
+  # Conway's Law Alignment
+  team_structure:
+    - "Automation Engineering Team → Broker_Verification_Engine"
+    - "Back Office Systems Team → HQ_Review_Manager"
+    - "Integration Team → Integration_Orchestrator"
+    - "AI/ML Engineering Team → Risk_Analyzer"
+    - "Master Data Team → Broker_Registry"
+
+  # Success Metrics
+  kpi_mapping:
+    - kpi: "Reduce manual effort by 80%"
+      supported_by: "Automation of steps 2-9 (8 out of 10 steps automated)"
+      measurement: "Time spent per broker: 1 day → <2 hours"
+
+    - kpi: "Improve accuracy to >90%"
+      supported_by: "Risk_Analyzer (AI document analysis catches missed findings)"
+      measurement: "AI findings match human review >90% of the time"
+
+    - kpi: "Accelerate broker onboarding"
+      supported_by: "Broker_Verification_Engine (parallel processing, no manual bottlenecks)"
+      measurement: "Workflow execution time <2 hours"
+
+    - kpi: "Zero compliance violations"
+      supported_by: "Audit trail (WorkflowInstance, Approval records), 7-year data retention"
+      measurement: "100% traceability of all decisions"
+
+  # Architecture Validation
+  validation_checklist:
+    - "✅ Archetype identified: Workflow Orchestrator"
+    - "✅ Ontology defined: 7 entity types (Broker, WorkflowInstance, VerificationStep, RiskCheck, RiskFinding, Approval, ExternalSystem)"
+    - "✅ Components instantiated: 5 solution components from canonical patterns"
+    - "✅ Required capabilities identified: Workflow orchestration, API integration, AI document analysis, storage"
+    - "✅ Conway's Law alignment: 5 teams, each owns 1 component"
+    - "✅ KPIs supported: All business goals traceable to components"
