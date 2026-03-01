@@ -34,20 +34,48 @@ LEVEL 3: Integration Platform for Interoperability
 **Level 1: Organizational**
 - **Problem**: Need to mirror business structure digitally
 - **Archetype**: Digital Twin (business domains = physical assets)
+- **Pre-digital example**: Org charts on walls, phone directories, guild registries
 - **Components**: Domain_Registry, Domain_Ownership_Manager, Domain_Analytics
 - **Ownership**: Platform Team (infrastructure) + Domain Teams (content)
 
 **Level 2: Technical (Per Domain)**
 - **Problem**: Each domain needs to publish data products as tradeable commodities
 - **Archetype**: Marketplace/Portal (data products = offerings, domain teams = sellers)
+- **Pre-digital example**: Grand Bazaar (1455), Medieval markets, Stock exchanges (1602)
 - **Components**: Catalog_Manager, Subscription_Manager, Quality_Rating_System, Provider_Portal
 - **Ownership**: Domain Teams (each domain owns their marketplace)
 
 **Level 3: Cross-Domain**
 - **Problem**: Domains must interoperate while maintaining autonomy
 - **Archetype**: Integration Platform (federated governance, cross-domain lineage)
+- **Pre-digital example**: Trade routes, postal systems, market inspectors (weights & measures)
 - **Components**: Federated_Governance_Engine, Cross_Domain_Lineage_Tracker, Schema_Registry
 - **Ownership**: Platform Team (infrastructure) + Governance Team (policies)
+
+---
+
+## Pre-Digital Evidence (This Pattern Existed Before Software)
+
+### Medieval Guild System (1400s) - Compositional Archetype
+
+**Level 1: City Registry** (Digital Twin of Guild Structure)
+- Physical: City hall maintained registry of all guilds
+- Records: Which guilds exist, who leads them, what they produce
+- Updates: When guilds merge, split, or dissolve
+
+**Level 2: Guild Marketplaces** (Each Guild Operates Marketplace)
+- Physical: Blacksmiths Guild sells tools, offers apprenticeships
+- Catalog: Master craftsmen known by reputation
+- Quality: Guild master certifications (like SLO compliance)
+- Transactions: Purchase goods, contract apprenticeships
+
+**Level 3: City Governance** (Integration Across Guilds)
+- Physical: City council sets trade rules, quality standards
+- Governance: Weights & measures inspectors (like schema registry)
+- Interoperability: Standard currencies, contract formats
+- Lineage: "Where did this material come from?" (supply chain tracking)
+
+**This exact compositional pattern existed 600 years before software.**
 
 ---
 
@@ -146,9 +174,15 @@ Team boundaries = domain boundaries = architectural boundaries ✅
 
 **Use this to see**: How compositional archetypes are documented - not a single archetype, but a composed system.
 
+**Note on Level 1 (Optional)**:
+- Many data mesh implementations (Netflix, Uber, LinkedIn) skip Level 1 entirely
+- They use existing org tools (Okta for teams, CMDB for domain catalog)
+- Level 1 is valuable when: complex matrix org, frequent restructures, need explicit domain registry
+- **Recommendation**: Start with Level 2 (marketplace), add Level 1 only if needed
+
 ---
 
-### 3. `technology-stack.yaml` (Coming Soon)
+### 3. `technology-stack.yaml`
 Will show technology selections for each level:
 - Level 1: PostgreSQL (domain registry), Prometheus (metrics)
 - Level 2: Elasticsearch (catalog search), Great Expectations (quality)

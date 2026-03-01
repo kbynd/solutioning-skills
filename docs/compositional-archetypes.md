@@ -2,14 +2,47 @@
 
 ## Overview
 
-A **compositional archetype** is formed when multiple archetypes compose at different levels or layers to create a more complex architectural pattern. This is distinct from choosing a single archetype - it's about how archetypes **combine and interact** to solve complex problems.
+A **compositional archetype** is formed when multiple reality patterns combine in the same system. This reflects how **reality itself is organized** - not how we choose to organize software.
+
+**Example from pre-digital reality** (Medieval guild system):
+```
+City (registry of guilds)
+  ↓ contains
+Guilds (each guild operates marketplace)
+  - Blacksmiths Guild → sells tools, apprenticeships
+  - Weavers Guild → sells fabrics, training
+  ↓ governed by
+City Council (quality standards, trade rules)
+```
+
+This compositional structure existed in 1400s - no software, no "layered architecture."
+
+## Archetypes vs Software Architecture
+
+**IMPORTANT**: Compositional archetypes ≠ Layered software architecture
+
+**Compositional Archetypes** (this framework):
+- How reality patterns COMPOSE (org contains marketplaces)
+- Business/domain structure
+- Independent of code organization
+
+**Layered Architecture** (POSA, software patterns):
+- How CODE is ORGANIZED (presentation/business/data layers)
+- Software structure
+- Independent of business patterns
+
+**You can implement compositional archetypes using**:
+- Layered architecture (organize code in layers)
+- Microservices (each domain = microservice)
+- Monolith (all in one codebase)
+- Any other software architecture style
 
 ## Why Compositional Archetypes?
 
-Most real-world systems are not simple enough to fit a single archetype. They require:
-- **Multiple layers** (organizational, technical, integration)
-- **Nested instances** (one archetype per instance of another)
-- **Cross-cutting concerns** (governance, security spanning layers)
+Most real-world systems are not simple enough to fit a single archetype. Reality itself is compositional:
+- **Organizations contain divisions** (nesting)
+- **Different concerns exist at different levels** (organizational, operational, governance)
+- **Systems must interoperate** (cross-cutting integration)
 
 ## Composition Patterns
 

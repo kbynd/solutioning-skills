@@ -1,10 +1,44 @@
 # Architecture Framework
 
-A systematic, archetype-based approach to solution architecture that separates **architectural patterns** from **technology choices**.
+A systematic, archetype-based approach to solution architecture that **discovers patterns from reality** and shows how to implement them in software.
+
+## What Are Archetypes?
+
+**Archetypes are patterns that exist in reality, before software exists.**
+
+This framework catalogs patterns from the physical and business world:
+- **Marketplaces**: Grand Bazaar (1455), Stock Exchanges (1602), Medieval Markets
+- **Physical Twins**: Temple miniatures (Hampi), Delta Works models (Rotterdam), Scale models
+- **Ledgers/Records**: Land registries, accounting books, birth certificates
+- **Approval Processes**: Royal courts, guild certifications, quality inspections
+
+**Software implements these patterns digitally** - it doesn't invent them.
+
+### Archetypes ≠ Software Architecture Patterns
+
+This framework is NOT:
+- Competing with POSA (Pattern-Oriented Software Architecture)
+- Defining how to organize code (layers, microservices, pipes-filters)
+- Software design patterns (Gang of Four)
+
+This framework IS:
+- Catalog of **business/domain patterns** that software implements
+- Independent of implementation style (use layers OR microservices OR monolith)
+- Patterns proven over centuries/millennia (not invented by framework)
+
+```
+Reality/Business World (marketplaces, twins, workflows exist)
+    ↓
+ARCHETYPES (our framework catalogs these patterns)
+    ↓
+Software Implementation (use any architectural style: layered, microservices, etc.)
+    ↓
+Technology Stack (AWS, Azure, open-source)
+```
 
 ## Overview
 
-Most architecture frameworks jump straight from requirements to technology ("We need a microservices architecture with Kubernetes"). This framework introduces a critical missing layer: **Solution Archetypes** - proven patterns that apply across industries and are independent of specific technologies.
+Most architecture frameworks jump straight from requirements to technology ("We need microservices on Kubernetes"). This framework introduces a critical missing layer: **Solution Archetypes** - patterns from reality that apply across industries and are independent of both software architecture styles and specific technologies.
 
 **The Framework Flow:**
 ```
@@ -107,22 +141,24 @@ See `skills/tech-stack-mapper.md` for full documentation.
 
 ## Solution Archetypes
 
-The framework provides 7 reusable archetypes:
+The framework catalogs 7 patterns discovered from reality:
 
-| Archetype | When to Use | Example Domains |
-|-----------|-------------|-----------------|
-| **Digital Twin** | Physical process with digital tracking, real-time state sync | Retail Chain store construction, manufacturing lines, supply chain |
-| **Workflow Orchestrator** | Multi-step approval process, human-in-the-loop | Broker verification, purchase order approval, employee onboarding |
-| **System of Record** | Single source of truth, master data management | Customer MDM, product catalog, vendor registry |
-| **Analytics Platform** | Historical insights, dashboards, predictive models | Sales analytics, operations reporting, ML forecasting |
-| **Integration Platform** | Connect disparate systems, data synchronization | ERP ↔ CRM sync, legacy modernization, API orchestration |
-| **Collaboration Hub** | Team communication, content sharing, real-time collaboration | Team chat, project collaboration, document collaboration |
-| **Marketplace/Portal** | Multi-tenant, catalog, transactions, reviews | E-commerce marketplace, SaaS app store, service marketplace |
+| Archetype | Pre-Digital Origins | Modern Software Examples |
+|-----------|---------------------|--------------------------|
+| **Digital Twin** | Temple miniatures (Hampi), Delta Works models (Rotterdam), architectural scale models | Retail Chain store construction tracking, manufacturing digital twins, IoT monitoring |
+| **Workflow Orchestrator** | Royal court approvals, guild certifications, multi-step inspections | Broker verification, purchase order approval, employee onboarding |
+| **System of Record** | Land registries, birth certificates, accounting ledgers, guild membership rolls | Customer MDM, product catalog, vendor registry |
+| **Analytics Platform** | Census records, trade statistics, astronomical observations | Sales analytics, operations reporting, ML forecasting |
+| **Integration Platform** | Trade routes, postal systems, messenger networks | ERP ↔ CRM sync, legacy modernization, API orchestration |
+| **Collaboration Hub** | Town squares, guild halls, royal courts | Team chat, project collaboration, document collaboration |
+| **Marketplace/Portal** | Grand Bazaar (1455), Stock exchanges (1602), Medieval markets | E-commerce marketplace, SaaS app store, data product catalog |
+
+**Key insight**: These patterns existed for centuries before software. Software simply implements them digitally.
 
 Each archetype defines:
-- **Canonical ontology**: Entity types, properties, relationships
-- **Canonical components**: Asset_Registry, Workflow_Engine, etc.
-- **Required capabilities**: What technology must provide (not which technology)
+- **Canonical ontology**: Entity types, properties, relationships (discovered from reality)
+- **Canonical components**: Asset_Registry, Workflow_Engine, etc. (how reality organizes these patterns)
+- **Required capabilities**: What technology must provide (not which technology to use)
 
 ## Compositional Archetypes
 
@@ -188,6 +224,38 @@ The framework is built on proven principles:
 - **Bounded contexts**: Component boundaries = team boundaries (Conway's Law)
 - **Ubiquitous language**: Ontology defines shared vocabulary
 - **Aggregate roots**: Each component owns specific entity types
+
+## Relationship to Software Architecture Patterns
+
+**This framework complements (not competes with) software architecture patterns**:
+
+```
+┌─────────────────────────────────────────────┐
+│ Business/Reality Patterns (This Framework)  │
+│ - What patterns exist in the world?         │
+│ - Marketplace, Twin, Ledger, Workflow       │
+└─────────────────┬───────────────────────────┘
+                  ↓
+┌─────────────────────────────────────────────┐
+│ Software Architecture Patterns (POSA, etc.) │
+│ - How to organize code?                     │
+│ - Layers, Microservices, Pipes-Filters      │
+└─────────────────┬───────────────────────────┘
+                  ↓
+┌─────────────────────────────────────────────┐
+│ Design Patterns (Gang of Four)              │
+│ - How to structure components?              │
+│ - Observer, Factory, Strategy               │
+└─────────────────────────────────────────────┘
+```
+
+**Example**:
+- **Reality pattern**: Marketplace (sellers, buyers, catalog, transactions)
+- **This framework says**: "Your problem matches Marketplace archetype"
+- **You choose architecture**: Microservices OR Monolith OR Layered
+- **You choose design patterns**: Observer for notifications, Factory for product creation
+
+**Both needed, different purposes, complementary.**
 
 ## Key Differentiators
 
