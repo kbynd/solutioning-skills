@@ -1,0 +1,585 @@
+# Data Mesh - Technology Stack (Compositional)
+
+composition_aware: true
+levels: 3
+tech_selection_approach: "Per-level with cross-level integration"
+
+---
+
+## NFR Extraction (From Requirements)
+
+nfr_extraction:
+  performance:
+    - "Data discovery: <2 seconds (catalog search)"
+    - "Data consumption: <5 minutes (approval to first query)"
+    - "Data freshness: Domain-defined SLOs (real-time to daily)"
+
+  quality:
+    - "SLO coverage: 100% of products have defined SLOs"
+    - "Metadata completeness: 100% (schema, owner, lineage, docs)"
+    - "Schema compatibility: 99% backward-compatible changes"
+
+  scalability:
+    - "Support 100+ domains, 1000+ data products"
+    - "No single point of failure"
+    - "Decentralized publishing"
+
+  governance:
+    - "Compliance: 100% products comply with PII, encryption, retention"
+    - "Interoperability: All products use standard formats (Parquet, Avro)"
+
+  cost:
+    - "Cost attribution: 100% costs allocated to domain/consumer"
+    - "POC budget: <$100K/year for platform infrastructure"
+    - "Production: Variable cost per domain (chargeback)"
+
+---
+
+## Cross-Level Technology Constraints
+
+global_constraints:
+
+  cloud_platform:
+    selected: "AWS"
+    rationale: |
+      - Organization already on AWS (existing expertise, IAM, billing)
+      - Need for multi-account strategy (domain isolation)
+      - Cost management APIs for chargeback
+    applies_to: [Level 1, Level 2, Level 3]
+
+  identity_provider:
+    selected: "Okta"
+    rationale: |
+      - Organization standard for SSO
+      - OAuth 2.0 support for API authentication
+      - SCIM for team/group sync (domain ownership)
+    applies_to: [Level 1, Level 2, Level 3]
+
+  observability:
+    selected: "Datadog"
+    rationale: |
+      - Organization standard for monitoring
+      - Support for metrics, logs, traces
+      - Cross-account visibility (needed for federated view)
+    applies_to: [Level 1, Level 2, Level 3]
+
+  infrastructure_as_code:
+    selected: "Terraform"
+    rationale: |
+      - Team expertise (platform team knows Terraform)
+      - AWS provider mature and well-documented
+      - Modular structure supports per-domain provisioning
+    applies_to: [Level 3 (platform team), Level 2 (domain teams via templates)]
+
+---
+
+## LEVEL 1: Digital Twin of Business Structure
+
+level: 1
+archetype: "Digital Twin"
+ownership: "Platform Team"
+
+components:
+
+  L1-001: Domain_Registry
+    purpose: "Master data for business domains"
+    required_capabilities:
+      - ACID transactions (domain data consistency)
+      - Schema management (domain ontology versioning)
+      - API for registration and queries
+    technology_selected: "PostgreSQL (RDS)"
+    rationale: |
+      - ACID guarantees for domain registry consistency
+      - JSONB for flexible domain metadata (bounded contexts, capabilities)
+      - pgAdmin for manual admin (org restructures)
+      - Open format (SQL) - data outlives tools
+    alternatives_considered:
+      - "MongoDB: Good for flexible schema, but ACID weaker than PostgreSQL"
+      - "DynamoDB: AWS-native, but harder to query complex relationships"
+    cost: "$120/month (db.t3.small, 50GB storage)"
+
+  L1-002: Domain_Ownership_Manager
+    purpose: "Sync org structure to digital twin"
+    required_capabilities:
+      - IAM/LDAP integration (sync teams, groups)
+      - Change event detection (org restructure triggers)
+      - Ownership mapping (team to domain)
+    technology_selected: "Custom Lambda + Okta API"
+    rationale: |
+      - Okta SCIM API provides team/group events
+      - Lambda processes events, updates Domain_Registry
+      - Serverless (no ops burden)
+    cost: "$10/month (Lambda invocations + API calls)"
+
+  L1-003: Domain_Analytics
+    purpose: "Analyze domain health (quality, product count, usage)"
+    required_capabilities:
+      - Metrics aggregation (from Level 2 quality systems)
+      - Time-series storage (historical trends)
+      - Dashboards (domain health overview)
+    technology_selected: "Datadog Dashboards + Custom Metrics"
+    rationale: |
+      - Already using Datadog (org standard)
+      - Custom metrics from Level 2 systems pushed to Datadog
+      - Dashboards show: products per domain, quality scores, usage
+    cost: "$0 (included in org Datadog license)"
+
+  L1-004: Domain_Catalog_UI
+    purpose: "Visualize domain landscape (org chart view)"
+    required_capabilities:
+      - Web UI (React, D3.js for org chart)
+      - API integration (read from Domain_Registry)
+      - Authentication (Okta SSO)
+    technology_selected: "React + D3.js (hosted on S3 + CloudFront)"
+    rationale: |
+      - Static site (low cost, high performance)
+      - D3.js for interactive org chart visualization
+      - CloudFront CDN for global access
+    cost: "$5/month (S3 + CloudFront)"
+
+level_1_total_cost: "$135/month (fixed, platform team budget)"
+
+---
+
+## LEVEL 2: Marketplace Per Domain
+
+level: 2
+archetype: "Marketplace/Portal"
+ownership: "Domain Teams (50 domains)"
+cost_model: "Per-domain variable cost (chargeback to domains)"
+
+components:
+
+  L2-001: Catalog_Manager
+    purpose: "Product catalog with search/discovery"
+    required_capabilities:
+      - Full-text search (<2 second search results - NFR)
+      - Faceted filtering (domain, schema, quality score, tags)
+      - Relevance ranking (popularity, quality score)
+      - Metadata storage (schema, SLOs, owner, lineage)
+    technology_selected: "OpenMetadata (open-source data catalog)"
+    rationale: |
+      - Open-source (no licensing costs)
+      - Built-in: search (Elasticsearch), metadata storage (MySQL), UI (React)
+      - Supports: lineage, data quality, profiling
+      - Community active, Cloud-native (Kubernetes)
+      - Alternative to commercial: DataHub, Amundsen (similar capabilities)
+    deployment: "EKS (Kubernetes) - shared cluster, namespace per domain"
+    cost: "$2,000/month shared (EKS cluster + MySQL RDS + Elasticsearch)"
+    cost_per_domain: "$40/month (allocated across 50 domains)"
+    alternatives_considered:
+      - "DataHub: Similar to OpenMetadata, slightly more complex setup"
+      - "AWS Glue Data Catalog: AWS-native, but limited search capabilities"
+      - "Amundsen: Good for search, but less active community than OpenMetadata"
+
+  L2-002: Subscription_Manager
+    purpose: "Access control, usage tracking, cost allocation"
+    required_capabilities:
+      - RBAC (IAM roles per consumer)
+      - Usage metering (API calls, queries, data egress)
+      - Cost allocation (chargeback to consumers)
+      - Access request workflow (request → approve → grant)
+    technology_selected: "AWS IAM + Custom Access Manager (Lambda + DynamoDB)"
+    rationale: |
+      - AWS IAM for actual access control (S3, Athena, API Gateway)
+      - Custom Lambda workflow for access requests (Slack notifications)
+      - DynamoDB stores subscriptions, usage logs
+      - AWS Cost Explorer API for cost allocation
+    cost_per_domain: "$20/month (Lambda + DynamoDB + API Gateway)"
+
+  L2-003: Quality_Rating_System
+    purpose: "SLO monitoring (freshness, completeness, accuracy)"
+    required_capabilities:
+      - Data quality testing (validate SLOs)
+      - SLO aggregation (calculate quality score 0-100%)
+      - Alerting (Slack, PagerDuty when SLO violated)
+      - Historical tracking (quality trends)
+    technology_selected: "Great Expectations + Datadog"
+    rationale: |
+      - Great Expectations (open-source, Python)
+        - Write validation rules (freshness, completeness, accuracy)
+        - Generate JSON reports (pass/fail per validation)
+      - Datadog for SLO tracking
+        - Push quality metrics (% passed validations)
+        - Alerts when SLO violated (<90% compliance)
+    cost_per_domain: "$15/month (Lambda for GE runs + Datadog metrics)"
+    alternatives_considered:
+      - "Soda Core: Similar to GE, SQL-based (vs Python)"
+      - "dbt tests: Great for SQL transformations, but GE more flexible"
+      - "Monte Carlo: Commercial, automated, but expensive ($$$)"
+
+  L2-004: Provider_Portal
+    purpose: "Self-service for domain teams to publish products"
+    required_capabilities:
+      - Web UI (product registration form)
+      - Schema editor (define fields, types, constraints)
+      - SLO configuration (set freshness, quality targets)
+      - Publishing workflow (validate → register → deploy)
+    technology_selected: "OpenMetadata UI + Custom Workflows"
+    rationale: |
+      - OpenMetadata already provides: schema editor, metadata forms
+      - Custom workflows (Lambda Step Functions) for publishing validation
+      - Integrates with Schema_Registry (L3) for compatibility checks
+    cost: "$0 (included in OpenMetadata deployment - L2-001)"
+
+  L2-005: Data_Product_Builder
+    purpose: "CLI tools for creating data products"
+    required_capabilities:
+      - CLI (init, test, publish commands)
+      - Scaffolding (generate schema, pipeline, tests)
+      - CI/CD integration (GitHub Actions templates)
+    technology_selected: "Custom Python CLI (Click framework)"
+    rationale: |
+      - Python Click for CLI (team knows Python)
+      - Templates stored in Git (schema.yaml, pipeline.py, tests/)
+      - GitHub Actions for CI/CD (run GE tests, publish to catalog)
+    cost: "$0 (development time only, no runtime cost)"
+
+  L2-XXX: Data_Pipeline_Runtime
+    purpose: "Run ETL/ELT jobs for data products"
+    note: "Per-domain infrastructure (each domain provisions own)"
+    required_capabilities:
+      - Scheduled execution (cron, time-based)
+      - DAG orchestration (dependencies)
+      - Scalability (handle GB to TB data)
+    technology_selected: "dbt + Airflow (or AWS MWAA)"
+    rationale: |
+      - dbt for SQL transformations (open-source, declarative)
+      - Airflow for orchestration (Python-based, flexible)
+      - AWS MWAA (Managed Airflow) option for less ops burden
+    cost_per_domain: "$50-500/month (depends on data volume)"
+    alternatives_considered:
+      - "Prefect: Modern alternative to Airflow, easier to use"
+      - "Dagster: Asset-oriented, good for data products"
+      - "AWS Glue: Serverless, but less flexible than Airflow"
+
+level_2_cost_per_domain: "$125-605/month per domain (variable by usage)"
+level_2_total_cost_50_domains: "$6,250-30,250/month (chargeback to domains)"
+
+---
+
+## LEVEL 3: Integration Across Domains
+
+level: 3
+archetype: "Integration Platform"
+ownership: "Platform Team + Governance Team"
+
+components:
+
+  L3-001: Federated_Governance_Engine
+    purpose: "Enforce global policies (PII, encryption, retention)"
+    required_capabilities:
+      - Policy-as-code (YAML definitions, version controlled)
+      - Automated enforcement (scan data products)
+      - Compliance reporting (which products compliant?)
+    technology_selected: "Open Policy Agent (OPA)"
+    rationale: |
+      - OPA: Policy-as-code (Rego language)
+      - Integrates with publishing workflow (validate before publish)
+      - Policies in Git (versioned, reviewed, CI/CD tested)
+      - Examples: "All PII fields must be encrypted", "Retention ≥ 7 years"
+    cost: "$10/month (Lambda for OPA runtime)"
+    alternatives_considered:
+      - "AWS Config Rules: AWS-native, but less flexible than OPA"
+      - "Custom Python validators: More work, less declarative"
+
+  L3-002: Cross_Domain_Lineage_Tracker
+    purpose: "Track data flows between domains"
+    required_capabilities:
+      - Lineage extraction (parse SQL, Spark jobs)
+      - Graph storage (upstream/downstream relationships)
+      - Visualization (lineage graph UI)
+      - Impact analysis (what breaks if schema changes?)
+    technology_selected: "OpenLineage + OpenMetadata"
+    rationale: |
+      - OpenLineage (CNCF project, standard for lineage)
+        - Integrations: Airflow, dbt, Spark (auto-capture lineage)
+        - Events sent to OpenMetadata
+      - OpenMetadata stores lineage (already using for catalog)
+      - UI shows cross-domain lineage graph
+    cost: "$0 (included in OpenMetadata - L2-001)"
+
+  L3-003: Schema_Registry
+    purpose: "Centralized schema catalog, compatibility checking"
+    required_capabilities:
+      - Schema versioning (v1, v2, v3)
+      - Compatibility checking (backward, forward, full)
+      - Schema formats (Avro, Protobuf, JSON Schema)
+    technology_selected: "Confluent Schema Registry (open-source)"
+    rationale: |
+      - OSS version of Confluent Schema Registry (no licensing)
+      - REST API for registration, retrieval
+      - Compatibility modes (BACKWARD, FORWARD, FULL)
+      - Used by: publishing workflow (validate before publish)
+    cost: "$50/month (EC2 instance for registry)"
+    alternatives_considered:
+      - "AWS Glue Schema Registry: AWS-native, free, but less features"
+      - "Custom: PostgreSQL + JSON Schema validator (more work)"
+
+  L3-004: Federated_Catalog_Aggregator
+    purpose: "Unified search across all domain catalogs"
+    note: "OpenMetadata already provides federated search"
+    technology_selected: "OpenMetadata (single instance, all domains)"
+    rationale: |
+      - OpenMetadata deployed as single shared instance
+      - All domains publish to same catalog (namespace per domain)
+      - Single search index spans all domains
+      - RBAC ensures domains only see what they're allowed
+    cost: "$0 (included in OpenMetadata - L2-001)"
+
+  L3-005: Self_Serve_Data_Platform
+    purpose: "Platform infrastructure (IaC, multi-tenancy, cost tracking)"
+    required_capabilities:
+      - Infrastructure-as-code (Terraform)
+      - Multi-tenancy (AWS accounts per domain OR shared account with isolation)
+      - Cost tracking (AWS Cost Explorer API)
+      - Resource provisioning (S3, Athena, Glue, etc.)
+    technology_selected: "Terraform + AWS Organizations + Cost Allocation Tags"
+    rationale: |
+      - Terraform modules for common resources (S3 bucket, Athena workgroup, etc.)
+      - AWS Organizations: Separate AWS account per domain (strong isolation)
+      - Cost Allocation Tags: Track spend per domain (for chargeback)
+      - Platform team maintains Terraform modules, domains use via templates
+    cost: "$100/month (AWS Organizations, FinOps tools)"
+    alternatives_considered:
+      - "Pulumi: Modern IaC, but team prefers Terraform"
+      - "CloudFormation: AWS-native, but less flexible than Terraform"
+
+level_3_total_cost: "$2,160/month (shared platform infrastructure)"
+
+---
+
+## Total Cost Estimate
+
+cost_breakdown:
+
+  level_1_fixed:
+    cost: "$135/month"
+    paid_by: "Platform Team budget"
+    components:
+      - Domain_Registry (PostgreSQL): $120
+      - Domain_Ownership_Manager (Lambda): $10
+      - Domain_Catalog_UI (S3 + CloudFront): $5
+
+  level_2_shared:
+    cost: "$2,000/month"
+    paid_by: "Allocated to domains ($40/domain for 50 domains)"
+    components:
+      - Catalog_Manager (OpenMetadata on EKS): $2,000
+
+  level_2_per_domain:
+    cost: "$85-565/month per domain (depends on usage)"
+    paid_by: "Chargeback to domain teams"
+    components:
+      - Subscription_Manager: $20/domain
+      - Quality_Rating_System: $15/domain
+      - Data_Pipeline_Runtime: $50-500/domain (variable)
+
+  level_3_fixed:
+    cost: "$2,160/month"
+    paid_by: "Platform Team budget"
+    components:
+      - Federated_Governance_Engine (OPA): $10
+      - Schema_Registry (Confluent OSS): $50
+      - Self_Serve_Data_Platform (Terraform + AWS Orgs): $100
+      - OpenMetadata (included above): $0
+
+  poc_phase_10_domains:
+    total: "$7,145/month"
+    breakdown:
+      - Level 1 (fixed): $135
+      - Level 2 (shared): $2,000
+      - Level 2 (10 domains × $85): $850
+      - Level 3 (fixed): $2,160
+      - Buffer: $2,000 (unknown costs)
+    within_budget: "✅ <$100K/year ($8,333/month)"
+
+  production_50_domains:
+    total: "$10,545 - $32,545/month"
+    breakdown:
+      - Level 1 (fixed): $135
+      - Level 2 (shared): $2,000
+      - Level 2 (50 domains × $85-565): $4,250-28,250
+      - Level 3 (fixed): $2,160
+      - Variable costs dominate (domain pipelines)
+    chargeback_model: "Domains pay for own usage (Level 2 per-domain costs)"
+
+---
+
+## Architectural Principles Applied
+
+principles:
+
+  data_longevity:
+    principle: "Data lives longer than code (7+ year retention)"
+    technologies:
+      - PostgreSQL (SQL - open format)
+      - Parquet files in S3 (open format)
+      - Avro schemas (open format)
+    avoided: "DynamoDB (proprietary format), vendor lock-in"
+
+  minimize_data_stores:
+    principle: "3 data stores, not 6+"
+    technologies:
+      - Tier 1: PostgreSQL (operational - domain registry, subscriptions)
+      - Tier 2: S3 (data lake - data products as Parquet)
+      - Tier 3: Elasticsearch (search - catalog search index)
+    avoided: "Separate DB per component (creates fragmentation)"
+
+  twelve_factor:
+    principle: "12-Factor App compliance"
+    examples:
+      - Factor III: Config in env (Terraform variables, not hardcoded)
+      - Factor IV: Backing services as attached resources (swap RDS instances)
+      - Factor VI: Stateless processes (Lambda functions, EKS pods)
+      - Factor XI: Logs as streams (CloudWatch, Datadog)
+
+  evolutionary_architecture:
+    principle: "Independent evolution (loose coupling)"
+    examples:
+      - Domains can upgrade pipelines without affecting others
+      - Platform can upgrade OpenMetadata without breaking domains
+      - Schema Registry ensures backward compatibility
+
+---
+
+## Fitness Functions
+
+fitness_functions:
+
+  FF-001: Data Discovery Speed
+    nfr: "<2 seconds to search data catalog"
+    measurement: "Datadog APM on OpenMetadata API (p95 latency)"
+    threshold: "p95 < 2000ms"
+    alert: "PagerDuty if p95 > 2000ms for 5 minutes"
+
+  FF-002: Data Consumption Speed
+    nfr: "<5 minutes from approval to first query"
+    measurement: "Custom metric: time from IAM role grant to first Athena query"
+    threshold: "p95 < 5 minutes"
+    alert: "Slack notification if p95 > 5 minutes"
+
+  FF-003: SLO Compliance
+    nfr: ">90% of products meet SLOs"
+    measurement: "Datadog custom metric: (products passing SLOs / total products)"
+    threshold: ">90%"
+    alert: "Executive dashboard shows red if <90%"
+
+  FF-004: Metadata Completeness
+    nfr: "100% of products have schema, owner, lineage"
+    measurement: "OpenMetadata data quality checks"
+    threshold: "100%"
+    alert: "Block publishing if metadata incomplete"
+
+  FF-005: Schema Compatibility
+    nfr: "99% of schema changes are backward-compatible"
+    measurement: "Schema Registry compatibility checks (# passed / # total)"
+    threshold: ">99%"
+    alert: "Block publishing if incompatible change (unless explicitly allowed)"
+
+  FF-006: Cost Per Domain
+    nfr: "Track cost per domain, alert if >$1K/month"
+    measurement: "AWS Cost Explorer API with cost allocation tags"
+    threshold: "<$1,000/month per domain (avg)"
+    alert: "Email domain owner if >$1K/month"
+
+---
+
+## Evolution Strategy
+
+phases:
+
+  phase_1_poc:
+    duration: "6 months"
+    domains: "5-10 pilot domains"
+    goal: "Prove value (self-service works, quality improves)"
+    technologies:
+      - "Minimal setup: OpenMetadata, Great Expectations, dbt, Airflow OSS"
+      - "Use AWS free tier where possible"
+      - "Manual processes acceptable (e.g., manual IAM grants)"
+    success_criteria:
+      - "3+ domains publish products without platform team tickets"
+      - "SLO compliance >85%"
+      - "Time-to-insight <1 day"
+    cost: "$7,145/month (within $100K/year budget)"
+
+  phase_2_production:
+    duration: "12 months"
+    domains: "50 domains"
+    goal: "Scale to organization (full automation, federated governance)"
+    technologies:
+      - "Optimize: AWS MWAA (Managed Airflow) for less ops burden"
+      - "Automate: Full IAM workflow (Slack → approve → grant)"
+      - "Monitor: Comprehensive Datadog dashboards"
+    optimizations:
+      - "Reserved instances for EKS, RDS (save 30-40%)"
+      - "S3 Intelligent-Tiering (reduce storage costs)"
+      - "Athena query optimization (partition pruning)"
+    cost: "$10,545 - $32,545/month (chargeback to domains)"
+
+  phase_3_scale:
+    duration: "18+ months"
+    domains: "100+ domains"
+    goal: "Enterprise-scale (1000+ products, cross-domain collaboration)"
+    enhancements:
+      - "ML-powered recommendations (suggest products based on usage)"
+      - "Automated data quality (ML detects anomalies)"
+      - "Advanced lineage (column-level impact analysis)"
+      - "Data marketplace (internal data exchange with pricing)"
+    technologies:
+      - "AWS SageMaker (ML models for recommendations, anomaly detection)"
+      - "Neo4j (advanced graph queries for lineage)"
+    cost: "$20K-50K/month (depends on adoption)"
+
+---
+
+## Technology Selection Rationale Summary
+
+key_decisions:
+
+  open_source_first:
+    decision: "Prefer OSS over commercial"
+    rationale: |
+      - Lower cost (no licensing fees)
+      - Avoid vendor lock-in (data in open formats)
+      - Community-driven innovation
+    examples:
+      - OpenMetadata (vs commercial: Collibra, Alation)
+      - Great Expectations (vs commercial: Monte Carlo)
+      - Confluent Schema Registry OSS (vs commercial: Confluent Cloud)
+
+  aws_native_where_appropriate:
+    decision: "Use AWS services where they fit"
+    rationale: |
+      - Already on AWS (expertise, IAM, billing)
+      - Managed services reduce ops burden
+      - Cost optimization (Reserved Instances, Savings Plans)
+    examples:
+      - RDS PostgreSQL (vs self-managed)
+      - EKS (vs self-managed Kubernetes)
+      - S3 (vs HDFS, object storage)
+    avoided: "AWS Glue (too limited for complex workflows)"
+
+  python_ecosystem:
+    decision: "Python for data engineering"
+    rationale: |
+      - Team expertise (data engineers know Python)
+      - Rich ecosystem (dbt, Great Expectations, Airflow, etc.)
+      - Good for both ETL and ML
+    examples:
+      - dbt (SQL transformations)
+      - Great Expectations (data quality)
+      - Airflow (orchestration)
+
+  composition_aware_design:
+    decision: "Different technologies per level, integrated via contracts"
+    rationale: |
+      - Level 1 (Digital Twin): PostgreSQL (ACID, relational)
+      - Level 2 (Marketplace): OpenMetadata (catalog), dbt/Airflow (pipelines)
+      - Level 3 (Integration): OPA (policies), Schema Registry (compatibility)
+      - Integration via APIs, events (not shared databases)
+    ensures: "Levels evolve independently without breaking others"
+
+---
+
+**End of Technology Stack**
