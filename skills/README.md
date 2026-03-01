@@ -1,18 +1,96 @@
 # SKILLs - Core Framework Components
 
-This directory contains the two core SKILLs that form the foundation of the architecture framework.
+This directory contains the three core SKILLs that form the foundation of the architecture framework.
 
 ## Overview
 
-The framework uses a two-stage process:
+The framework uses a three-stage process:
 
-1. **`solution-mapper`**: Requirements → Archetype → Components (technology-agnostic)
-2. **`tech-stack-mapper`**: Components → Technologies (budget/skills constrained)
+1. **`decode-the-meeting`**: Unstructured content → Structured requirements
+2. **`solution-mapper`**: Requirements → Archetype → Components (technology-agnostic)
+3. **`tech-stack-mapper`**: Components → Technologies (budget/skills constrained)
 
 This separation ensures:
+- Requirements are extracted systematically (not ad-hoc notes)
 - Architectural patterns are reusable across cloud platforms
 - Technology choices are driven by constraints (not hype)
 - Cost is considered upfront (not as an afterthought)
+
+---
+
+## SKILL 0: `/decode-the-meeting`
+
+**Purpose**: Extract structured requirements from unstructured meeting content (transcripts, minutes, emails, interviews).
+
+**File**: `decode-the-meeting.md`
+
+### What It Does
+
+1. **Reads Unstructured Content**
+   - Meeting minutes (SteerCo, discovery sessions)
+   - Email threads (funding requests, stakeholder communications)
+   - Transcripts (Zoom calls, interviews)
+   - Documents (proposals, presentations)
+
+2. **Identifies Key Information**
+   - Pain points (complaints, workarounds, frustrations)
+   - Business goals (reduce, improve, accelerate, eliminate)
+   - KPIs and metrics (95% target, 195 stores/year)
+   - Current process (as-is workflows)
+   - Decisions made (platform, budget, timeline)
+   - Integrations (Salesforce, NMLS, LexisNexis)
+   - Constraints (budget, platform, skills, compliance)
+
+3. **Extracts Structured Requirements**
+   - Project context (what, who, when, why)
+   - Business problem (pain points with impact)
+   - Current state (step-by-step as-is process)
+   - Business goals (quantified targets)
+   - NFRs (performance, accuracy, scalability, cost, security)
+   - Stakeholders (roles, responsibilities, pain points)
+   - Success criteria (measurable outcomes)
+
+4. **Outputs to Solution-Mapper**
+   - `requirements.md` (formatted for human review + solution-mapper input)
+   - Keywords for archetype matching ("multi-step", "approval", "workflow")
+
+### Input
+
+- Meeting minutes (Word, PDF, emails)
+- Discovery session transcripts (Zoom, Teams)
+- Email threads (funding requests, proposals)
+- Stakeholder interviews (1-on-1 conversations)
+
+### Output
+
+`requirements.md` containing:
+- Project context
+- Business problem and pain points
+- Current manual process (as-is)
+- Proposed solution (to-be)
+- Business goals and success criteria
+- Non-functional requirements
+- Key integrations
+- Constraints and stakeholders
+
+### When to Use
+
+- Starting discovery (extracting requirements from kickoff meetings)
+- Processing SteerCo minutes (ongoing requirements capture)
+- Analyzing email threads (funding requests, proposals)
+- Documenting interviews (stakeholder pain points)
+
+### Example
+
+**Input**: AWS funding request email (Broker Verification)
+
+**Process**:
+1. Read email: "Manual 10-step process, Control-F searches, LexisNexis reviews..."
+2. Annotate: Pain points, goals, integrations, constraints
+3. Extract: Structured YAML
+4. Write: `requirements.md`
+
+**Output**: See `examples/broker-verification/requirements.md`
 
 ---
 
@@ -173,17 +251,26 @@ This separation ensures:
 ### Sequential Flow
 
 ```
+0. decode-the-meeting:
+   Email/Meeting → "Manual 10-step process, Control-F searches, HQ approval..."
+              ↓
+   Extract: Pain points, goals, integrations, constraints
+              ↓
+   Output: requirements.md (structured requirements)
+
 1. solution-mapper:
-   Requirements → "Broker verification, 10 steps, HQ approval"
+   requirements.md → "Broker verification, 10 steps, HQ approval"
               ↓
    Archetype: Workflow Orchestrator
               ↓
    Components: Broker_Verification_Engine, HQ_Review_Manager, ...
               ↓
    Required capabilities: Stateful workflow, human-in-the-loop, ...
+              ↓
+   Output: solution-architecture.yaml
 
 2. tech-stack-mapper:
-   Required capabilities + Constraints (AWS, <$5K, Python team)
+   solution-architecture.yaml + Constraints (AWS, <$5K, Python team)
               ↓
    Technologies: Step Functions, Lambda, RDS, Bedrock
               ↓
@@ -192,23 +279,36 @@ This separation ensures:
    Fitness functions: Workflow time <2hrs, API <500ms
 ```
 
-### Why Two Separate SKILLs?
+### Why Three Separate SKILLs?
 
 **Separation of Concerns**:
+- `decode-the-meeting`: Focuses on **extraction** (unstructured → structured)
 - `solution-mapper`: Focuses on **patterns** (reusable across clouds)
 - `tech-stack-mapper`: Focuses on **constraints** (specific to project)
 
 **Benefits**:
+- Requirements extraction is **systematic** (not ad-hoc notes)
 - Archetype catalog is **cloud-agnostic** (applies to AWS, Azure, GCP, on-prem)
 - Technology choices are **justified** (not based on hype)
 - Cost is **transparent** (known upfront, not discovered later)
 
-**Example**: Same archetype, different platforms
-- **Broker Verification (AWS)**: Step Functions, Lambda, RDS, Bedrock
-- **Broker Verification (Azure)**: Logic Apps, Functions, SQL Database, OpenAI
-- **Broker Verification (Open-source)**: Temporal, Kubernetes, PostgreSQL, Ollama
+**Example**: Same meeting → Same archetype → Different tech stacks
 
-Same archetype, different tech stack!
+**Meeting content** (AWS funding email):
+→ "Manual 10-step broker verification, Control-F searches, HQ approval..."
+
+**decode-the-meeting** → `requirements.md`:
+→ Pain points, goals, integrations, constraints (platform-agnostic)
+
+**solution-mapper** → Workflow Orchestrator archetype:
+→ Same pattern whether deploying on AWS, Azure, or on-prem
+
+**tech-stack-mapper** → Different platforms:
+- **AWS**: Step Functions, Lambda, RDS, Bedrock
+- **Azure**: Logic Apps, Functions, SQL Database, OpenAI
+- **Open-source**: Temporal, Kubernetes, PostgreSQL, Ollama
+
+Same meeting → Same archetype → Different tech stacks!
 
 ---
 
@@ -216,9 +316,9 @@ Same archetype, different tech stack!
 
 ### Pattern 1: New Project (Greenfield)
 
-1. Extract requirements → `requirements.md`
-2. Apply `/solution-mapper` → `solution-architecture.yaml`
-3. Apply `/tech-stack-mapper` → `technology-stack.yaml`
+1. Apply `/decode-the-meeting` → Extract requirements from meetings/emails → `requirements.md`
+2. Apply `/solution-mapper` → Identify archetype, map ontology → `solution-architecture.yaml`
+3. Apply `/tech-stack-mapper` → Select technologies, estimate costs → `technology-stack.yaml`
 4. Generate IaC (Terraform/CloudFormation)
 5. Implement components
 6. Run fitness function tests
@@ -226,10 +326,11 @@ Same archetype, different tech stack!
 
 ### Pattern 2: Existing Project (Brownfield)
 
-1. Reverse engineer current architecture → Which archetype?
-2. Identify gaps (missing components, wrong archetype)
-3. Apply `/solution-mapper` → Correct archetype
-4. Apply `/tech-stack-mapper` → Optimal tech stack
+1. Apply `/decode-the-meeting` → Document current state from interviews/observations
+2. Reverse engineer current architecture → Which archetype?
+3. Identify gaps (missing components, wrong archetype)
+4. Apply `/solution-mapper` → Correct archetype
+5. Apply `/tech-stack-mapper` → Optimal tech stack
 5. Plan migration strategy (incremental, not big-bang)
 
 ### Pattern 3: Architecture Review
@@ -244,21 +345,23 @@ Same archetype, different tech stack!
 
 ## File Sizes and Complexity
 
-| SKILL | Lines | Archetypes | Principles | Examples |
-|-------|-------|------------|------------|----------|
-| `solution-mapper.md` | 1,755 | 7 | Conway's Law | Retail Store Opening, Broker Verification |
-| `tech-stack-mapper.md` | 1,366 | N/A | 12-factor, Evolutionary, Data longevity | Retail Store Opening, Broker Verification |
+| SKILL | Lines | Focus | Key Concepts | Examples |
+|-------|-------|-------|--------------|----------|
+| `decode-the-meeting.md` | 778 | Extraction | Pain points, goals, constraints, stakeholders | Broker Verification email, SteerCo minutes |
+| `solution-mapper.md` | 1,755 | Patterns | 7 archetypes, ontology, components | Retail Store Opening, Broker Verification |
+| `tech-stack-mapper.md` | 1,366 | Technologies | 12-factor, evolutionary, data longevity | Retail Store Opening, Broker Verification |
 
-Both files are comprehensive references you'll return to repeatedly.
+All three files are comprehensive references you'll return to repeatedly.
 
 ---
 
 ## Next Steps
 
-1. **Read the examples**: `../examples/broker-verification/` (full walkthrough)
-2. **Study one archetype deeply**: Start with Workflow Orchestrator or Digital Twin
-3. **Apply to your project**: Extract requirements, run through both SKILLs
-4. **Share feedback**: What archetypes are missing? What principles need clarification?
+1. **Read the complete example**: `../examples/broker-verification/` (full three-stage walkthrough)
+2. **Study one SKILL deeply**: Start with decode-the-meeting (most practical starting point)
+3. **Study one archetype**: Workflow Orchestrator or Digital Twin (most common)
+4. **Apply to your project**: Process a meeting/email → Extract requirements → Run through all three SKILLs
+5. **Share feedback**: What archetypes are missing? What principles need clarification?
 
 ---
 
@@ -266,5 +369,5 @@ Both files are comprehensive references you'll return to repeatedly.
 
 - **Archetype Deep Dives**: `../archetypes/` (coming soon)
 - **Principles Library**: `../principles/` (12-factor app, evolutionary architecture)
-- **Templates**: `../templates/` (YAML templates for solution architecture, tech stack)
-- **Examples**: `../examples/` (complete worked examples)
+- **Templates**: `../templates/` (YAML templates for requirements, solution architecture, tech stack)
+- **Examples**: `../examples/` (complete worked examples with all three SKILLs applied)
