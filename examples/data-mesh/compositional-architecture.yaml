@@ -1,0 +1,549 @@
+# Data Mesh - Compositional Architecture
+
+composition_type: "Layered + Nested"
+composition_levels: 3
+primary_pattern: "Digital Twin (business) → Marketplace (per domain) → Integration (cross-domain)"
+
+---
+
+## LEVEL 1: Digital Twin of Business Structure
+
+archetype: "Digital Twin with Ontology-Based Operations"
+what_is_mirrored: "Business domains (organizational structure, capabilities)"
+scope: "Organization-wide"
+ownership: "Platform Team (infrastructure) + Domain Teams (content)"
+
+archetype_rationale: |
+  Business domains are the "physical assets" being tracked. The organization chart
+  and business capabilities are mirrored digitally in the Domain Registry. As the
+  business restructures (merges, splits domains), the digital twin stays synchronized.
+
+ontology:
+  entity_types:
+
+    BusinessDomain:
+      description: "Digital representation of organizational unit (PhysicalAsset equivalent)"
+      properties:
+        - domain_id: "unique identifier"
+        - domain_name: "Sales, Marketing, Supply Chain, Customer Service"
+        - domain_type: "operational, analytical, supporting"
+        - bounded_context: "DDD bounded context (domain scope)"
+        - status: "active, restructuring, merged, dissolved"
+      relationships:
+        - part_of: Organization
+        - owned_by: DomainTeam
+        - produces: DataProduct[]
+
+    DomainCapability:
+      description: "What the domain does (Process equivalent)"
+      properties:
+        - capability_id: "unique identifier"
+        - capability_name: "Customer Acquisition, Order Fulfillment, Risk Assessment"
+        - capability_type: "core, supporting, generic"
+        - maturity_level: "initial, managed, defined, optimized"
+      relationships:
+        - provided_by: BusinessDomain
+
+    DomainTeam:
+      description: "People in domain (Actor equivalent)"
+      properties:
+        - team_id: "unique identifier"
+        - team_name: "Sales Analytics Team, Supply Chain Data Team"
+        - team_size: "number of people"
+        - skills: "data engineering, domain expertise, ML"
+      relationships:
+        - owns: BusinessDomain
+        - publishes: DataProduct[]
+
+    DomainMetrics:
+      description: "Telemetry from business (Measurement equivalent)"
+      properties:
+        - metric_id: "unique identifier"
+        - metric_type: "products_count, quality_score, usage_total, cost_total"
+        - value: "numeric value"
+        - timestamp: "when measured"
+      relationships:
+        - about: BusinessDomain
+
+solution_components:
+
+  L1-001: Domain_Registry
+    purpose: "Master data for business domains (Asset_Registry)"
+    entity_types_owned: [BusinessDomain, DomainCapability]
+    operations:
+      - create_domain: "New business unit → register in digital twin"
+      - update_domain_boundary: "Org restructure → update scope"
+      - query_domains: "Which domains exist? What do they own?"
+
+  L1-002: Domain_Ownership_Manager
+    purpose: "Sync business reality → digital twin (State_Synchronizer)"
+    entity_types_owned: [DomainTeam]
+    operations:
+      - assign_ownership: "Person A owns Domain B → update twin"
+      - track_team_changes: "Team size changed → update metrics"
+      - detect_ownership_gaps: "Domain has no owner → alert"
+
+  L1-003: Domain_Analytics
+    purpose: "Analyze domain health (Performance_Analyzer)"
+    entity_types_owned: [DomainMetrics]
+    operations:
+      - calculate_domain_health: "Quality score, product count, usage"
+      - predict_quality_issues: "Domain X trending toward violations"
+      - benchmark_domains: "Domain A vs. Domain B performance"
+
+  L1-004: Domain_Catalog_UI
+    purpose: "Visualize domain landscape (Digital_Twin_Viewer)"
+    entity_types_owned: [None - reads all]
+    operations:
+      - render_org_structure: "Show all domains in org chart"
+      - show_domain_health: "Green, yellow, red status"
+      - display_domain_products: "What does this domain produce?"
+
+required_capabilities:
+  - Domain registry storage (PostgreSQL, MongoDB)
+  - Ownership tracking (IAM integration, LDAP sync)
+  - Metrics collection (Prometheus, CloudWatch)
+  - Visualization UI (React, D3.js for org chart)
+
+---
+
+## LEVEL 2: Marketplace Per Domain
+
+archetype: "Marketplace/Portal"
+what_is_traded: "Data products (tradeable commodities)"
+scope: "Per domain (each domain = one marketplace instance)"
+ownership: "Domain Teams (each domain owns their marketplace)"
+
+archetype_rationale: |
+  Each business domain operates as a marketplace seller, publishing data products
+  as tradeable commodities. Data consumers are buyers who discover, subscribe, and
+  consume products. SLO compliance acts as product ratings/reviews. Usage is metered
+  and costs are allocated via chargeback.
+
+ontology:
+  entity_types:
+
+    DataProduct:
+      description: "Product/Offering in marketplace (also WorkUnit in Digital Twin)"
+      properties:
+        - product_id: "unique identifier"
+        - product_name: "customer_360, order_history"
+        - product_description: "what data, use cases, examples"
+        - product_owner: "person responsible (seller contact)"
+        - schema: "data contract (fields, types, constraints)"
+        - output_ports: "consumption interfaces (SQL, API, S3)"
+        - slo_targets: "quality guarantees (freshness, completeness, accuracy)"
+        - pricing_model: "chargeback formula (per query, per GB, flat rate)"
+        - quality_score: "aggregated SLO compliance % (like product rating)"
+        - popularity_score: "# of consumers, queries/day"
+        - lifecycle_stage: "active, deprecated, retired"
+        - version: "semantic version (v1.0.0, v2.1.3)"
+      relationships:
+        - offered_by: BusinessDomain (from Level 1)
+        - produced_by: DomainTeam (from Level 1)
+        - consumed_by: Subscription[]
+
+    DataConsumer:
+      description: "Buyer/Consumer in marketplace"
+      properties:
+        - consumer_id: "unique identifier"
+        - consumer_type: "human (analyst), system (ML pipeline), application"
+        - consumer_name: "team or service name"
+        - budget_allocation: "max spend per month"
+      relationships:
+        - subscribes_to: Subscription[]
+
+    Subscription:
+      description: "Transaction in marketplace (access grant)"
+      properties:
+        - subscription_id: "unique identifier"
+        - subscription_date: "when access granted"
+        - access_level: "read-only, read-write, admin"
+        - cost_to_date: "total cost accrued"
+        - status: "active, suspended, cancelled"
+      relationships:
+        - consumer: DataConsumer
+        - product: DataProduct
+
+    OutputPort:
+      description: "Delivery mechanism for data product"
+      properties:
+        - port_id: "unique identifier"
+        - port_type: "SQL, REST API, GraphQL, S3, Kafka"
+        - endpoint: "URL or connection string"
+        - authentication: "OAuth, API key, IAM role"
+        - rate_limit: "queries/second, GB/day"
+      relationships:
+        - exposes: DataProduct
+
+    DataContract:
+      description: "Product specification (schema + SLOs)"
+      properties:
+        - contract_id: "unique identifier"
+        - schema_version: "version"
+        - schema_definition: "fields, types, constraints"
+        - backward_compatible: "boolean"
+        - slo_freshness: "max age (e.g., <1 hour)"
+        - slo_completeness: "% required fields (>95%)"
+        - slo_accuracy: "validation rules"
+      relationships:
+        - governs: DataProduct
+
+    QualityRating:
+      description: "Review/Rating (SLO compliance as product rating)"
+      properties:
+        - rating_id: "unique identifier"
+        - rating_type: "slo_compliance, freshness, accuracy"
+        - rating_value: "0-100% (like 5-star → 100%)"
+        - measurement_date: "when measured"
+        - passed_slo: "boolean"
+      relationships:
+        - for: DataProduct
+
+    UsageMetrics:
+      description: "Performance analytics (like product sales metrics)"
+      properties:
+        - metric_id: "unique identifier"
+        - metric_type: "queries_per_day, unique_consumers, data_egress_gb, cost_total"
+        - metric_value: "numeric value"
+        - timestamp: "when measured"
+      relationships:
+        - about: DataProduct
+        - by: DataConsumer
+
+solution_components:
+
+  L2-001: Catalog_Manager
+    purpose: "Product catalog with search/discovery (Catalog_Manager)"
+    entity_types_owned: [DataProduct (metadata)]
+    operations:
+      - publish_product: "Domain publishes new product to catalog"
+      - search_products: "Keyword search, faceted filters"
+      - recommend_products: "Suggest based on usage patterns"
+      - view_product_details: "Schema, SLOs, owner, lineage"
+    scope: "Per domain (each domain has catalog) OR federated (see Level 3)"
+
+  L2-002: Subscription_Manager
+    purpose: "Handle access control, usage tracking (Transaction_Processor)"
+    entity_types_owned: [Subscription, UsageMetrics]
+    operations:
+      - request_access: "Consumer requests subscription"
+      - approve_access: "Domain owner approves"
+      - grant_credentials: "Issue API key, IAM role"
+      - track_usage: "Queries/day, data egress, cost"
+      - allocate_costs: "Chargeback to consumer team"
+
+  L2-003: Quality_Rating_System
+    purpose: "SLO monitoring as product ratings (Review_System)"
+    entity_types_owned: [QualityRating]
+    operations:
+      - measure_slo_compliance: "Freshness, completeness, accuracy"
+      - aggregate_quality_score: "Overall rating (0-100%)"
+      - alert_on_violation: "Notify domain owner"
+      - display_quality_metrics: "Show ratings in catalog"
+
+  L2-004: Provider_Portal
+    purpose: "Self-service for domain teams to publish (Provider_Portal)"
+    entity_types_owned: [DataProduct (create/update), OutputPort]
+    operations:
+      - scaffold_product: "Generate boilerplate schema, code, tests"
+      - define_schema: "Specify fields, types, constraints"
+      - set_slos: "Define freshness, quality targets"
+      - create_output_ports: "Expose SQL, API, S3 endpoints"
+      - publish_to_catalog: "Register in catalog"
+      - view_analytics: "Usage, consumers, quality, revenue"
+
+  L2-005: Data_Product_Builder
+    purpose: "CLI tools for creating data products"
+    entity_types_owned: [None - tooling layer]
+    operations:
+      - init_product: "Scaffold new data product"
+      - test_product: "Run data quality tests"
+      - publish_product: "Deploy to platform, register in catalog"
+      - version_product: "Manage schema evolution"
+
+required_capabilities:
+  - Product catalog (Elasticsearch, Meilisearch for search)
+  - Subscription management (IAM, OAuth, custom RBAC)
+  - Usage metering (API Gateway, custom logging)
+  - Cost allocation (cloud cost APIs, chargeback system)
+  - Quality monitoring (Great Expectations, Soda, dbt)
+  - CLI tools (Python Click, Node.js Commander)
+
+---
+
+## LEVEL 3: Integration Across Domains
+
+archetype: "Integration Platform"
+what_integrates: "Data products across domains"
+scope: "Cross-domain (organization-wide)"
+ownership: "Platform Team (infrastructure) + Governance Team (policies)"
+
+archetype_rationale: |
+  While each domain operates independently (Level 2), cross-domain integration is
+  needed for interoperability. The Integration Platform provides federated catalog
+  (unified search), federated governance (global policies), and cross-domain lineage
+  (track dependencies between domains).
+
+ontology:
+  entity_types:
+
+    DataLineage:
+      description: "Supply chain tracking (cross-domain dependencies)"
+      properties:
+        - lineage_id: "unique identifier"
+        - lineage_type: "product_level, column_level"
+        - upstream_product: "source data product"
+        - downstream_product: "derived data product"
+        - transformation: "how upstream → downstream (SQL, code)"
+      relationships:
+        - from: DataProduct (supplier domain)
+        - to: DataProduct (consumer domain)
+
+    GlobalPolicy:
+      description: "Organization-wide governance rules"
+      properties:
+        - policy_id: "unique identifier"
+        - policy_type: "privacy (PII masking), security (encryption), retention (7-year)"
+        - policy_rule: "machine-readable rule"
+        - enforcement: "automated or manual"
+      relationships:
+        - applies_to: DataProduct[]
+
+    SchemaRegistry:
+      description: "Centralized schema catalog for interoperability"
+      properties:
+        - registry_id: "unique identifier"
+        - schema_format: "Avro, Protobuf, JSON Schema"
+        - compatibility_mode: "backward, forward, full"
+      operations:
+        - register_schema: "Domain registers product schema"
+        - validate_compatibility: "Check new version compatible"
+        - retrieve_schema: "Consumer fetches schema for parsing"
+
+    FederatedCatalog:
+      description: "Unified search across all domain catalogs"
+      properties:
+        - catalog_id: "unique identifier"
+        - indexed_domains: "list of domains included"
+        - search_index: "aggregated index from all domains"
+      operations:
+        - federated_search: "Search across all domains"
+        - aggregate_metadata: "Combine metadata from domain catalogs"
+
+solution_components:
+
+  L3-001: Federated_Governance_Engine
+    purpose: "Enforce global policies (API_Orchestrator for policies)"
+    entity_types_owned: [GlobalPolicy, DataContract (validation)]
+    operations:
+      - define_policy: "Organization sets PII, encryption, retention rules"
+      - validate_contract: "Check schema compatibility, SLO feasibility"
+      - enforce_interoperability: "Ensure standard formats (Parquet, Avro)"
+      - audit_compliance: "Verify domains adhere to policies"
+
+  L3-002: Cross_Domain_Lineage_Tracker
+    purpose: "Track data flows between domains (Event_Router)"
+    entity_types_owned: [DataLineage]
+    operations:
+      - extract_lineage: "Parse SQL, Spark jobs for dependencies"
+      - map_column_lineage: "Field X from Domain A → Field Y in Domain B"
+      - visualize_lineage: "Graph UI showing cross-domain flows"
+      - impact_analysis: "What breaks if Domain A changes schema?"
+      - notify_consumers: "Alert downstream domains of changes"
+
+  L3-003: Schema_Registry
+    purpose: "Centralized schema catalog (Transformation mapping)"
+    entity_types_owned: [SchemaRegistry]
+    operations:
+      - register_schema: "Domain registers product schema"
+      - validate_compatibility: "Check backward/forward compatibility"
+      - retrieve_schema: "Consumer fetches schema"
+      - enforce_standards: "All schemas use Avro/Protobuf/JSON"
+
+  L3-004: Federated_Catalog_Aggregator
+    purpose: "Unified search across domain catalogs (Connector_Registry)"
+    entity_types_owned: [FederatedCatalog]
+    operations:
+      - aggregate_catalogs: "Combine metadata from all domains"
+      - federated_search: "Search across all domain catalogs"
+      - global_recommendations: "Suggest products from any domain"
+
+  L3-005: Self_Serve_Data_Platform
+    purpose: "Platform infrastructure enabling domain autonomy"
+    entity_types_owned: [None - platform layer]
+    operations:
+      - provision_storage: "Create S3 bucket, database, table for domain"
+      - deploy_pipeline: "Run ETL/ELT jobs defined by domain"
+      - expose_output_port: "Generate SQL endpoint, API, streaming topic"
+      - enforce_policies: "Apply encryption, PII masking automatically"
+      - track_costs: "Monitor spend per domain"
+
+required_capabilities:
+  - Governance enforcement (OPA, cloud IAM, policy-as-code)
+  - Lineage extraction (OpenLineage, dbt, custom parsers)
+  - Lineage storage (Neo4j, PostgreSQL graph)
+  - Schema registry (Confluent Schema Registry, AWS Glue)
+  - Federated catalog (DataHub, OpenMetadata, Amundsen)
+  - Infrastructure-as-code (Terraform, Pulumi)
+  - Multi-tenancy (Kubernetes namespaces, cloud accounts)
+
+---
+
+## Composition Integration Points
+
+layer_1_to_layer_2:
+  description: "Digital Twin defines domain boundaries, each domain operates marketplace"
+  contracts:
+    - Domain boundaries: "Which domain owns which data? (from Domain_Registry)"
+    - Domain ownership: "Who can publish products for this domain? (from Domain_Ownership_Manager)"
+  flow:
+    - Domain_Registry (L1) → defines domains → Catalog_Manager (L2) organizes by domain
+    - DomainTeam (L1) → owns domain → Provider_Portal (L2) publishes products
+    - DomainMetrics (L1) → tracks domain health → Domain_Analytics (L1) + Quality_Rating_System (L2)
+
+layer_2_to_layer_3:
+  description: "Marketplaces publish to federated systems, governed by global policies"
+  contracts:
+    - Data contracts: "Schema, SLOs for each product (validated by L3)"
+    - Global policies: "PII, encryption, retention (enforced by L3)"
+  flow:
+    - Catalog_Manager (L2) → publishes metadata → Federated_Catalog_Aggregator (L3)
+    - DataProduct (L2) → schema registered → Schema_Registry (L3)
+    - DataProduct (L2) → lineage extracted → Cross_Domain_Lineage_Tracker (L3)
+    - Provider_Portal (L2) → validates contract → Federated_Governance_Engine (L3)
+
+layer_1_to_layer_3:
+  description: "Platform operates at org level, serves all domains"
+  contracts:
+    - Platform SLAs: "Uptime, performance guarantees"
+    - Cost allocation: "Chargeback per domain"
+  flow:
+    - Domain_Registry (L1) → lists all domains → Self_Serve_Data_Platform (L3) provisions resources
+    - DomainMetrics (L1) → cost tracking → cost allocated to domains
+
+---
+
+## Team Structure (Conway's Law)
+
+teams:
+
+  Domain_Teams:
+    count: "50 (one per business domain)"
+    owns_levels: [1 (domain content), 2 (marketplace content)]
+    responsibilities:
+      - Define domain boundaries (Level 1)
+      - Own data products (Level 2)
+      - Publish to catalog (Level 2)
+      - Meet SLOs (Level 2)
+      - Respond to consumers (Level 2)
+    components_owned:
+      - Domain content in Domain_Registry (L1)
+      - Data products in Catalog_Manager (L2)
+      - Subscriptions managed via Subscription_Manager (L2)
+
+  Platform_Team:
+    count: "1 (centralized)"
+    owns_levels: [1 (infrastructure), 3 (full)]
+    responsibilities:
+      - Operate Domain_Registry (Level 1 infra)
+      - Build self-serve platform (Level 3)
+      - Enforce global policies (Level 3)
+      - Maintain federated catalog (Level 3)
+      - Optimize costs (Level 3)
+    components_owned:
+      - Domain_Registry, Domain_Ownership_Manager, Domain_Analytics (L1)
+      - Self_Serve_Data_Platform, Federated_Catalog_Aggregator (L3)
+
+  Governance_Team:
+    count: "1 (federated: representatives from domains + central)"
+    owns_levels: [3 (policies)]
+    responsibilities:
+      - Define global policies (Level 3)
+      - Validate data contracts (Level 3)
+      - Audit compliance (Level 3)
+    components_owned:
+      - Federated_Governance_Engine, Schema_Registry (L3)
+
+  Data_Product_Support_Team:
+    count: "1 (centralized, optional)"
+    owns_levels: [2 (shared services)]
+    responsibilities:
+      - Maintain data product builder tools (Level 2)
+      - Monitor SLO compliance (Level 2)
+      - Support domains with quality issues (Level 2)
+    components_owned:
+      - Data_Product_Builder, Quality_Rating_System (L2)
+
+---
+
+## KPI Mapping (Business Goals → Components)
+
+BG-001: "Scale to 100 domains without central bottleneck"
+  supporting_components:
+    - L3-005: Self_Serve_Data_Platform (domains provision autonomously)
+    - L2-004: Provider_Portal (easy publishing)
+    - L2-005: Data_Product_Builder (CLI tools reduce friction)
+  measurement: "# of domains publishing without platform team tickets"
+
+BG-002: "Improve data quality (>90% SLO compliance)"
+  supporting_components:
+    - L1-002: Domain_Ownership_Manager (clear accountability)
+    - L2-003: Quality_Rating_System (measure SLOs)
+    - L3-001: Federated_Governance_Engine (enforce standards)
+  measurement: "% of products meeting SLOs"
+
+BG-003: "Accelerate time-to-insight (<1 day)"
+  supporting_components:
+    - L2-001: Catalog_Manager (fast discovery)
+    - L3-004: Federated_Catalog_Aggregator (search all domains)
+    - L2-002: Subscription_Manager (fast access grants)
+  measurement: "Median time from need to first query"
+
+BG-004: "Enable data democratization (500+ cross-domain subscriptions)"
+  supporting_components:
+    - L3-004: Federated_Catalog_Aggregator (discover across domains)
+    - L3-002: Cross_Domain_Lineage_Tracker (understand dependencies)
+    - L2-001: Catalog_Manager (publish products)
+  measurement: "# of cross-domain subscriptions"
+
+BG-005: "Reduce costs (30% reduction)"
+  supporting_components:
+    - L2-002: Subscription_Manager (usage metering, chargeback)
+    - L1-003: Domain_Analytics (cost visibility per domain)
+    - L3-005: Self_Serve_Data_Platform (cost tracking)
+  measurement: "Total cloud bill (before/after)"
+
+---
+
+## Composition Validation
+
+conways_law: ✅
+  - Domain Teams own Domain (L1) + Marketplace (L2)
+  - Platform Team owns infrastructure (L1 + L3)
+  - Governance Team owns policies (L3)
+  - Team boundaries = architectural boundaries
+
+clear_ownership: ✅
+  - Level 1: Platform Team (infra) + Domain Teams (content)
+  - Level 2: Domain Teams (products)
+  - Level 3: Platform Team (infra) + Governance Team (policies)
+
+explicit_contracts: ✅
+  - L1 ↔ L2: Domain boundaries, ownership mappings
+  - L2 ↔ L3: Data contracts, schemas, SLOs
+  - L1 ↔ L3: Cost allocation, platform SLAs
+
+independent_evolution: ✅
+  - Domains can change products without affecting other domains (L2 isolated)
+  - Platform can upgrade infrastructure without breaking domains (L3 contracts)
+  - Business can restructure domains without breaking products (L1 sync to L2)
+
+no_circular_dependencies: ✅
+  - L1 → L2 → L3 (clear dependency direction)
+  - L3 does not depend on L2 content (only contracts)
+  - L2 does not depend on L1 content (only domain boundaries)
+
+---
+
+**End of Compositional Architecture**

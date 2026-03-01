@@ -8,11 +8,20 @@ Most architecture frameworks jump straight from requirements to technology ("We 
 
 **The Framework Flow:**
 ```
-Requirements → Solution Archetype → Solution Components → Technology Stack
-     ↓              ↓                    ↓                      ↓
-  Business      Canonical            Instantiated         Budget/Skills
-   Problems      Patterns            Components           Constrained
-                                                          Technologies
+Requirements → Solution Archetype(s) → Solution Components → Technology Stack
+     ↓              ↓                      ↓                      ↓
+  Business      Canonical Patterns     Instantiated         Budget/Skills
+   Problems    (Single or Composed)    Components           Constrained
+                                                           Technologies
+```
+
+**For complex systems**, archetypes can **compose** at multiple levels:
+```
+Requirements → Identify Levels → Apply Archetype Per Level → Define Integration
+     ↓              ↓                    ↓                         ↓
+  Multiple    Organizational       L1: Digital Twin         Explicit
+  Concerns    + Technical +        L2: Marketplace          Contracts
+              Integration          L3: Integration          Between Levels
 ```
 
 ## Core Principles
@@ -28,17 +37,21 @@ Requirements → Solution Archetype → Solution Components → Technology Stack
 ```
 architecture-framework/
 ├── skills/                    # The core SKILLS (what you use)
+│   ├── decode-the-meeting.md  # Extract requirements from unstructured content
 │   ├── solution-mapper.md     # Archetype-based solution design
 │   └── tech-stack-mapper.md   # Technology selection framework
 │
 ├── examples/                  # Complete worked examples
-│   ├── broker-verification/   # Workflow Orchestrator archetype
-│   └── retail-store-opening/         # Digital Twin archetype
+│   ├── broker-verification/   # Workflow Orchestrator (single archetype)
+│   ├── retail-store-opening/         # Digital Twin (single archetype)
+│   └── data-mesh/             # Compositional archetypes (Digital Twin + Marketplace + Integration)
 │
-├── archetypes/                # Detailed archetype documentation
-├── templates/                 # Reusable YAML templates
-├── principles/                # Architectural principles library
-└── docs/                      # Framework documentation
+├── docs/                      # Framework documentation
+│   └── compositional-archetypes.md
+│
+├── archetypes/                # Detailed archetype documentation (coming soon)
+├── templates/                 # Reusable YAML templates (coming soon)
+└── principles/                # Architectural principles library (coming soon)
 ```
 
 ## Quick Start
@@ -111,6 +124,46 @@ Each archetype defines:
 - **Canonical components**: Asset_Registry, Workflow_Engine, etc.
 - **Required capabilities**: What technology must provide (not which technology)
 
+## Compositional Archetypes
+
+For complex systems, archetypes can **compose** at multiple levels. Instead of choosing a single archetype, you identify different levels/layers and apply the appropriate archetype at each level.
+
+### Composition Patterns
+
+**Nesting**: One archetype contains multiple instances of another
+- Example: Digital Twin (business domains) contains Marketplace instances (one per domain)
+
+**Layering**: Different archetypes at different abstraction levels
+- Example: Organizational (Digital Twin) + Technical (Marketplace) + Integration (Integration Platform)
+
+**Integration**: Cross-cutting archetype connects composed layers
+- Example: Integration Platform provides federated governance across domain marketplaces
+
+### Example: Data Mesh
+
+```yaml
+Level 1: Digital Twin of Business Structure
+  - Mirrors: Business domains (Sales, Marketing, Supply Chain)
+  - Components: Domain_Registry, Domain_Ownership_Manager
+
+Level 2: Marketplace Per Domain (nested)
+  - Each domain operates as marketplace seller
+  - Traded items: Data products
+  - Components: Catalog_Manager, Subscription_Manager, Quality_Rating_System
+
+Level 3: Integration Platform (cross-cutting)
+  - Connects: Domain marketplaces
+  - Components: Federated_Governance_Engine, Cross_Domain_Lineage_Tracker
+```
+
+**When to use composition**:
+- ✅ Multiple concerns (organizational + technical)
+- ✅ Repeating instances (many domains, tenants, regions)
+- ✅ Conway's Law: team boundaries = architectural boundaries
+- ✅ Need federated governance (global policies, local autonomy)
+
+**See**: `docs/compositional-archetypes.md` and `examples/data-mesh/`
+
 ## Architectural Principles
 
 The framework is built on proven principles:
@@ -173,6 +226,16 @@ The framework is built on proven principles:
 **Archetype**: Digital Twin with Ontology-Based Operations
 **Technologies**: Microsoft Fabric IQ Ontology, Lakehouse, Event Hubs
 **See**: Documented in `skills/solution-mapper.md` (lines 855-1499)
+
+### Data Mesh (Compositional Archetypes)
+**Domain**: Enterprise data architecture
+**Problem**: Scale data architecture to 100+ domains without central bottleneck
+**Composition**:
+- Level 1: Digital Twin (business domains mirror organizational structure)
+- Level 2: Marketplace (each domain publishes data products as tradeable commodities)
+- Level 3: Integration Platform (federated governance, cross-domain lineage)
+**Key Insight**: First example of compositional archetypes - domains are Digital Twin of business, each operates marketplace
+**See**: `examples/data-mesh/`
 
 ## Framework Benefits
 
