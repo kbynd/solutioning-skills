@@ -151,6 +151,38 @@ Team boundaries = domain boundaries = architectural boundaries ✅
 
 ---
 
+### 1a. `aws-gap-analysis.md`
+**Source**: Analysis of AWS Lake Formation + Glue data mesh implementation
+
+**Contents**:
+- AWS approach summary (what they provide)
+- Archetype mapping (what reality pattern requires)
+- Gap analysis (what's missing)
+- Adoption prediction (15-30% based on 30% archetype completeness)
+- Recommendations (hybrid AWS + OSS to close gaps)
+
+**Key Insight**:
+> "AWS built the PLUMBING but not the MARKETPLACE. Infrastructure is necessary but not sufficient."
+
+**Archetype Completeness Score**: 30% (1/3 critical components, 2/7 total)
+- ✅ Transactions (Lake Formation access control)
+- ❌ Discovery (no catalog search)
+- ❌ Quality Signals (no SLO tracking)
+- ❌ Usage Tracking (no cost allocation)
+- ❌ Supply Chain (no lineage)
+- 🟡 Governance (manual, doesn't scale)
+- 🟡 Onboarding (high friction)
+
+**Predicted Adoption**: 15-30%
+- Month 1-3: 3-5 pilot domains
+- Month 4-6: Adoption stalls (can't find data)
+- Month 7-9: Only 10% participate
+- Month 10-12: Project dies, revert to central lake
+
+**Use this to see**: How archetype completeness methodology predicts real-world adoption success. Demonstrates framework value for evaluating vendor solutions.
+
+---
+
 ### 2. `compositional-architecture.yaml`
 **Source**: Output from solution-mapper (compositional mode)
 

@@ -17,6 +17,175 @@ This skipped the **Solution Archetype** layer - the reusable pattern that applie
 Requirements → Solution Archetype → Solution Components → Universal Components → Tech Stack
 ```
 
+---
+
+## CRITICAL: Consult Failure Patterns for Each Archetype
+
+**Before proceeding with archetype mapping, you MUST understand:**
+
+### Archetype Success KPIs and Failure Patterns
+
+Every archetype has **known failure patterns** across its lifecycle (Design → Build → Implementation → Operations → Maintenance).
+
+**Reference Document**: `docs/archetype-success-kpis.md`
+
+**When identifying an archetype (e.g., "This is a Marketplace archetype"), you MUST:**
+
+1. **Consult the archetype's KPI framework** in archetype-success-kpis.md
+2. **Understand leading indicators** (what predicts failure BEFORE it happens)
+3. **Review decision impact analysis** (how design choices NOW affect KPIs LATER)
+4. **Apply failure prevention** to your solution design
+
+---
+
+### Why This Matters
+
+**Example: Marketplace Archetype**
+
+If you identify requirements as matching Marketplace archetype, you MUST understand:
+
+**Design Phase Failure Patterns:**
+- **Product granularity** decision affects operations discovery time and maintenance evolution velocity
+  - Coarse products (1 per domain) → slow discovery, low reusability, high breaking change risk
+  - Fine products (5-10 per domain) → fast discovery, high reusability, low breaking change risk
+
+- **Quality enforcement** decision affects operations catalog quality and consumer trust
+  - Lenient enforcement → fast onboarding BUT low quality, consumer trust loss (60 NPS)
+  - Strict enforcement → slower onboarding BUT high quality, consumer trust (85 NPS)
+
+**Operations Phase Failure Patterns:**
+- **SLO compliance trend declining** (92% → 88% → 84%) predicts quality crisis
+- **Support ticket trend rising** (50 → 70 → 90/week) predicts systemic issues
+- **Consumer satisfaction dropping** (NPS 70 → 60 → 50) predicts abandonment
+
+**You MUST design to avoid these failures:**
+```yaml
+# BAD: Ignoring failure patterns
+solution:
+  approach: "Build marketplace catalog"
+  # ❌ No consideration of product granularity → will make wrong choice
+  # ❌ No instrumentation of leading indicators → won't see failure coming
+  # ❌ No quality enforcement strategy → catalog will degrade
+
+# GOOD: Applying failure pattern awareness
+solution:
+  approach: "Build marketplace catalog"
+
+  design_decisions:
+    product_granularity: "Fine (5-10 products per domain)"
+    rationale: "Prevents operations discovery time and maintenance evolution failures"
+    failure_prevented: "Coarse products cause slow discovery (>10 min) and high breaking change risk"
+
+    quality_enforcement: "Tiered (strict for critical, lenient for experimental)"
+    rationale: "Prevents operations catalog quality degradation"
+    failure_prevented: "Lenient enforcement causes NPS drop from 75 → 60 → 50 (abandonment)"
+
+  instrumentation:
+    leading_indicators:
+      - "Onboarding time (target <1 day, alert if >2 days)"
+      - "SLO compliance trend (target stable >90%, alert if declining)"
+      - "Consumer satisfaction (target NPS >75, alert if <70)"
+
+    failure_signals:
+      - "Onboarding time increasing 4h → 8h → 12h → adoption failure imminent"
+      - "SLO compliance declining 92% → 88% → 84% → quality crisis imminent"
+```
+
+---
+
+### How to Use archetype-success-kpis.md
+
+**Step 1: After identifying archetype, READ its section**
+
+```
+You identified: Marketplace archetype (Level 2)
+
+REQUIRED: Read docs/archetype-success-kpis.md "Marketplace/Portal Archetype" section
+
+Extract:
+- Leading indicators (what predicts failure)
+- Decision impact analysis (7 major decisions documented)
+- Failure signals (thresholds for alerts)
+```
+
+**Step 2: Apply decisions with failure awareness**
+
+For each major design decision in the archetype's KPI framework:
+- Review options (e.g., coarse vs fine products)
+- Understand downstream KPI impact (how this affects operations, maintenance)
+- Make explicit choice with rationale
+- Document failure prevented
+
+**Step 3: Specify instrumentation**
+
+Your solution MUST include:
+```yaml
+instrumentation:
+  leading_indicators:
+    - name: "KPI_NAME from archetype-success-kpis.md"
+      target: "Target from archetype framework"
+      alert_threshold: "Failure signal threshold"
+      measurement: "How to measure"
+
+  failure_prevention:
+    - pattern: "Failure pattern from archetype framework"
+      mitigation: "How design prevents this"
+```
+
+**Step 4: If discovering NEW archetype**
+
+If you identify a pattern that ISN'T in the archetype catalog:
+1. Document it as a new archetype
+2. **CRITICAL**: Define its failure patterns using the same framework structure
+   - Leading indicators (Design, Build, Implementation, Operations, Maintenance)
+   - Lagging indicators
+   - Decision impact analysis
+3. Add to both solution-mapper.md AND archetype-success-kpis.md
+
+---
+
+### Template: Archetype with Failure Awareness
+
+When mapping to an archetype, use this template:
+
+```yaml
+archetype_identification:
+  archetype: "ARCHETYPE_NAME"
+  rationale: "Why this archetype matches requirements"
+
+  # NEW: Failure pattern awareness
+  failure_patterns_consulted:
+    source: "docs/archetype-success-kpis.md section: ARCHETYPE_NAME"
+
+    design_decisions_with_failure_impact:
+      - decision: "DECISION_NAME (e.g., Product granularity)"
+        chosen_option: "OPTION (e.g., Fine granularity)"
+        rationale: "Why chosen based on downstream KPI impact"
+        failure_prevented: "What operations/maintenance failure this avoids"
+        kpi_impact:
+          operations_kpi: "Expected KPI value (e.g., discovery time <5 min)"
+          maintenance_kpi: "Expected KPI value (e.g., breaking changes <5%)"
+
+    instrumentation_plan:
+      leading_indicators:
+        - name: "INDICATOR_NAME"
+          target: "TARGET_VALUE"
+          failure_signal: "ALERT_THRESHOLD"
+          why_leading: "What failure this predicts"
+
+      lagging_indicators:
+        - name: "INDICATOR_NAME"
+          target: "TARGET_VALUE"
+          measurement: "HOW_TO_MEASURE"
+
+    failure_scenarios_addressed:
+      - scenario: "FAILURE_PATTERN from archetype framework"
+        prevention: "Design decision that prevents this"
+        detection: "Leading indicator that warns if failure approaching"
+```
+
+---
+
 ## Step 1: Solution Archetype Catalog
 
 ### Archetype 1: Digital Twin with Ontology-Based Operations

@@ -124,24 +124,53 @@ ontology:
   entity_types:
 
     DataProduct:
-      description: "Product/Offering in marketplace (also WorkUnit in Digital Twin)"
+      description: "Prosumer node in data supply chain - both produces and consumes data"
+      archetype_attribution: "Marketplace/Portal (offering) + Supply Chain (node in flow)"
       properties:
+        # Product identity
         - product_id: "unique identifier"
         - product_name: "customer_360, order_history"
         - product_description: "what data, use cases, examples"
         - product_owner: "person responsible (seller contact)"
+
+        # Product offering (Marketplace archetype)
         - schema: "data contract (fields, types, constraints)"
         - output_ports: "consumption interfaces (SQL, API, S3)"
         - slo_targets: "quality guarantees (freshness, completeness, accuracy)"
         - pricing_model: "chargeback formula (per query, per GB, flat rate)"
         - quality_score: "aggregated SLO compliance % (like product rating)"
         - popularity_score: "# of consumers, queries/day"
-        - lifecycle_stage: "active, deprecated, retired"
+        - marketplace_status: "draft, published, active, deprecated, retired"
         - version: "semantic version (v1.0.0, v2.1.3)"
+
+        # Prosumer - Supply chain position (Supply Chain archetype)
+        - input_dependencies:
+            - source_product_id: "upstream DataProduct ID (what this consumes)"
+            - source_domain: "which domain provides input"
+            - dependency_type: "required (breaks without) | optional (enrichment)"
+            - slo_propagation: "if upstream breaks SLO, I break (quality cascade)"
+            - usage_pattern: "aggregation | join | filter | pass-through"
+
+        - output_consumers:
+            - consumer_product_id: "downstream DataProduct ID (who consumes me)"
+            - consumer_domain: "which domain consumes output"
+            - impact_level: "critical (they break) | moderate | low"
+            - breaking_change_risk: "schema change breaks consumer pipeline"
+
+        # Provenance & Trust (Supply Chain archetype)
+        - lineage_chain: "Full path from source systems (e.g., Payments.raw → Sales.customer_360)"
+        - lineage_depth: "number of hops from root sources (0 = raw source, 1 = derived once)"
+        - pii_sources: "Which upstream products contain PII? (compliance tracking)"
+        - compliance_requirements: "Inherited from upstream (GDPR, CCPA, encryption)"
+        - ethical_sourcing_verified: "All upstream products meet governance policies?"
+        - carbon_footprint: "Computational cost of full lineage chain (CPU-hours, cost)"
+
       relationships:
         - offered_by: BusinessDomain (from Level 1)
         - produced_by: DomainTeam (from Level 1)
         - consumed_by: Subscription[]
+        - sources_from: DataProduct[] (prosumer inputs - tracked at Level 2)
+        - feeds_into: DataProduct[] (prosumer outputs - tracked at Level 2)
 
     DataConsumer:
       description: "Buyer/Consumer in marketplace"
@@ -274,153 +303,349 @@ required_capabilities:
 
 ## LEVEL 3: Integration Across Domains
 
-archetype: "Integration Platform"
-what_integrates: "Data products across domains"
+archetypes: "Integration Platform + Supply Chain Network (complementary)"
+what_integrates: "Independent domain marketplaces (Integration) + Multi-stage data flows (Supply Chain)"
 scope: "Cross-domain (organization-wide)"
 ownership: "Platform Team (infrastructure) + Governance Team (policies)"
 
 archetype_rationale: |
-  While each domain operates independently (Level 2), cross-domain integration is
-  needed for interoperability. The Integration Platform provides federated catalog
-  (unified search), federated governance (global policies), and cross-domain lineage
-  (track dependencies between domains).
+  Level 3 uses TWO complementary archetypes from reality:
+
+  1. Integration Platform (connect independent systems):
+     - Pre-digital: Postal systems connecting cities, trade route networks
+     - Function: Enable interoperability between autonomous domains
+     - Components: Schema_Registry (standard formats), Federated_Catalog (unified search),
+                   Federated_Governance_Engine (global policies)
+
+  2. Supply Chain Network (track multi-stage transformations):
+     - Pre-digital: Silk Road (China → Persia → Venice), Medieval wool trade (Shepherd → Weaver → Tailor)
+     - Function: End-to-end visibility of transformations and quality propagation
+     - Components: Cross_Domain_Lineage_Tracker (full chain visibility),
+                   Impact_Analyzer (upstream change → downstream alert),
+                   Quality_Propagation_Tracker (SLO violations cascade)
+
+  These are DIFFERENT patterns solving DIFFERENT problems:
+  - Integration: "How do independent domains interoperate?" (standards, catalog, governance)
+  - Supply Chain: "Where did this come from?" (provenance, trust, quality propagation)
+
+  Both needed: Integration enables communication, Supply Chain enables trust.
 
 ontology:
   entity_types:
 
-    DataLineage:
-      description: "Supply chain tracking (cross-domain dependencies)"
-      properties:
-        - lineage_id: "unique identifier"
-        - lineage_type: "product_level, column_level"
-        - upstream_product: "source data product"
-        - downstream_product: "derived data product"
-        - transformation: "how upstream → downstream (SQL, code)"
-      relationships:
-        - from: DataProduct (supplier domain)
-        - to: DataProduct (consumer domain)
+    # From Integration Platform Archetype
+    # (Enabling interoperability between independent systems)
 
     GlobalPolicy:
-      description: "Organization-wide governance rules"
+      description: "Organization-wide governance rules (Integration Platform)"
+      archetype_attribution: "Integration Platform"
+      pre_digital_example: "City trade laws, guild quality standards"
       properties:
         - policy_id: "unique identifier"
         - policy_type: "privacy (PII masking), security (encryption), retention (7-year)"
-        - policy_rule: "machine-readable rule"
-        - enforcement: "automated or manual"
+        - policy_rule: "machine-readable rule (OPA Rego, SQL)"
+        - enforcement: "automated (policy-as-code) or manual (approval)"
+        - violation_consequence: "block publish, alert, audit log"
       relationships:
         - applies_to: DataProduct[]
+        - enforced_by: Federated_Governance_Engine
 
     SchemaRegistry:
-      description: "Centralized schema catalog for interoperability"
+      description: "Centralized schema catalog for interoperability (Integration Platform)"
+      archetype_attribution: "Integration Platform"
+      pre_digital_example: "Standard weights & measures, currency exchange rates"
       properties:
         - registry_id: "unique identifier"
         - schema_format: "Avro, Protobuf, JSON Schema"
         - compatibility_mode: "backward, forward, full"
+        - version_history: "all schema versions"
       operations:
         - register_schema: "Domain registers product schema"
-        - validate_compatibility: "Check new version compatible"
+        - validate_compatibility: "Check backward/forward compatibility"
         - retrieve_schema: "Consumer fetches schema for parsing"
+        - enforce_standards: "All schemas use approved formats"
 
     FederatedCatalog:
-      description: "Unified search across all domain catalogs"
+      description: "Unified search across all domain catalogs (Integration Platform)"
+      archetype_attribution: "Integration Platform"
+      pre_digital_example: "Trade route maps, city-wide merchant directories"
       properties:
         - catalog_id: "unique identifier"
         - indexed_domains: "list of domains included"
         - search_index: "aggregated index from all domains"
+        - last_sync: "when catalogs aggregated"
       operations:
-        - federated_search: "Search across all domains"
+        - federated_search: "Search across all domain catalogs"
         - aggregate_metadata: "Combine metadata from domain catalogs"
+        - global_recommendations: "Suggest products from any domain"
+
+    # From Supply Chain Network Archetype
+    # (Tracking multi-stage flows and provenance)
+
+    DataLineage:
+      description: "End-to-end supply chain tracking (Supply Chain Network)"
+      archetype_attribution: "Supply Chain Network"
+      pre_digital_example: "Silk Road tracking (China → Persia → Venice), wool trade chain"
+      properties:
+        - lineage_id: "unique identifier"
+        - lineage_type: "product_level, column_level, row_level"
+        - upstream_product: "source data product (supplier)"
+        - downstream_product: "derived data product (consumer)"
+        - transformation: "how upstream → downstream (SQL, Spark, Python)"
+        - lineage_depth: "number of hops from raw sources"
+        - full_chain: "Root sources → all transformations → end product"
+      relationships:
+        - from: DataProduct (supplier domain)
+        - to: DataProduct (consumer domain)
+        - tracked_by: Cross_Domain_Lineage_Tracker
+
+    QualityPropagation:
+      description: "How quality violations cascade through supply chain (Supply Chain Network)"
+      archetype_attribution: "Supply Chain Network"
+      pre_digital_example: "Bad wheat → bad flour → bad bread (defect propagation)"
+      properties:
+        - propagation_id: "unique identifier"
+        - root_violation: "which upstream product broke SLO"
+        - affected_chain: "all downstream products impacted"
+        - severity: "critical (breaks downstream) | warning (degrades quality)"
+        - resolution_status: "root cause fixed, propagation cleared"
+      relationships:
+        - originates_from: DataProduct (root cause)
+        - propagates_to: DataProduct[] (all downstream)
+
+    ImpactAnalysis:
+      description: "What breaks if this changes? (Supply Chain Network)"
+      archetype_attribution: "Supply Chain Network"
+      pre_digital_example: "If wool supplier goes bankrupt, which tailors affected?"
+      properties:
+        - analysis_id: "unique identifier"
+        - change_type: "schema change, SLO change, deprecation"
+        - source_product: "product being changed"
+        - impacted_products: "downstream products affected"
+        - blast_radius: "number of hops affected"
+        - mitigation: "notification sent, migration path provided"
+      relationships:
+        - change_at: DataProduct (source)
+        - impacts: DataProduct[] (downstream consumers)
 
 solution_components:
 
+  # From Integration Platform Archetype
+  # (Components that enable interoperability between independent domains)
+
   L3-001: Federated_Governance_Engine
-    purpose: "Enforce global policies (API_Orchestrator for policies)"
+    purpose: "Enforce global policies across autonomous domains"
+    archetype_attribution: "Integration Platform"
+    pre_digital_analog: "City inspectors enforcing weights & measures across guilds"
     entity_types_owned: [GlobalPolicy, DataContract (validation)]
     operations:
-      - define_policy: "Organization sets PII, encryption, retention rules"
-      - validate_contract: "Check schema compatibility, SLO feasibility"
-      - enforce_interoperability: "Ensure standard formats (Parquet, Avro)"
-      - audit_compliance: "Verify domains adhere to policies"
-
-  L3-002: Cross_Domain_Lineage_Tracker
-    purpose: "Track data flows between domains (Event_Router)"
-    entity_types_owned: [DataLineage]
-    operations:
-      - extract_lineage: "Parse SQL, Spark jobs for dependencies"
-      - map_column_lineage: "Field X from Domain A → Field Y in Domain B"
-      - visualize_lineage: "Graph UI showing cross-domain flows"
-      - impact_analysis: "What breaks if Domain A changes schema?"
-      - notify_consumers: "Alert downstream domains of changes"
+      - define_policy: "Organization sets PII, encryption, retention rules (policy-as-code)"
+      - validate_contract: "Check schema compatibility, SLO feasibility before publish"
+      - enforce_interoperability: "Ensure standard formats (Parquet, Avro, JSON)"
+      - audit_compliance: "Verify domains adhere to policies (automated checks)"
+      - block_violations: "Prevent publishing products that violate policies"
 
   L3-003: Schema_Registry
-    purpose: "Centralized schema catalog (Transformation mapping)"
+    purpose: "Centralized schema catalog for interoperability"
+    archetype_attribution: "Integration Platform"
+    pre_digital_analog: "Standard weights & measures office"
     entity_types_owned: [SchemaRegistry]
     operations:
       - register_schema: "Domain registers product schema"
       - validate_compatibility: "Check backward/forward compatibility"
-      - retrieve_schema: "Consumer fetches schema"
-      - enforce_standards: "All schemas use Avro/Protobuf/JSON"
+      - retrieve_schema: "Consumer fetches schema for parsing"
+      - enforce_standards: "All schemas use approved formats"
+      - version_management: "Track schema evolution across domains"
 
   L3-004: Federated_Catalog_Aggregator
-    purpose: "Unified search across domain catalogs (Connector_Registry)"
+    purpose: "Unified search across independent domain catalogs"
+    archetype_attribution: "Integration Platform"
+    pre_digital_analog: "City-wide merchant directory, trade route maps"
     entity_types_owned: [FederatedCatalog]
     operations:
-      - aggregate_catalogs: "Combine metadata from all domains"
-      - federated_search: "Search across all domain catalogs"
-      - global_recommendations: "Suggest products from any domain"
+      - aggregate_catalogs: "Combine metadata from all domain catalogs"
+      - federated_search: "Search across all domain catalogs (single search box)"
+      - global_recommendations: "Suggest products from any domain (based on usage)"
+      - sync_metadata: "Keep federated view up-to-date with domain changes"
 
   L3-005: Self_Serve_Data_Platform
     purpose: "Platform infrastructure enabling domain autonomy"
+    archetype_attribution: "Integration Platform"
+    pre_digital_analog: "Shared city infrastructure (roads, utilities, currency)"
     entity_types_owned: [None - platform layer]
     operations:
       - provision_storage: "Create S3 bucket, database, table for domain"
       - deploy_pipeline: "Run ETL/ELT jobs defined by domain"
       - expose_output_port: "Generate SQL endpoint, API, streaming topic"
       - enforce_policies: "Apply encryption, PII masking automatically"
-      - track_costs: "Monitor spend per domain"
+      - track_costs: "Monitor spend per domain (cost allocation)"
+
+  # From Supply Chain Network Archetype
+  # (Components that track multi-stage flows and enable trust through provenance)
+
+  L3-002: Cross_Domain_Lineage_Tracker
+    purpose: "Track end-to-end data supply chains across domains"
+    archetype_attribution: "Supply Chain Network"
+    pre_digital_analog: "Trade route tracking, supply chain provenance (Silk Road documentation)"
+    entity_types_owned: [DataLineage, ImpactAnalysis]
+    operations:
+      - extract_lineage: "Parse SQL, Spark jobs for dependencies (automatic)"
+      - aggregate_chains: "Build full lineage: Root sources → all hops → end product"
+      - map_column_lineage: "Field X from Domain A → Field Y in Domain B (granular)"
+      - visualize_lineage: "Graph UI showing cross-domain flows (network diagram)"
+      - calculate_depth: "How many hops from raw sources? (lineage_depth metric)"
+
+  L3-006: Impact_Analyzer
+    purpose: "Predict blast radius of changes through supply chain"
+    archetype_attribution: "Supply Chain Network"
+    pre_digital_analog: "Analyzing impact of supplier bankruptcy on downstream merchants"
+    entity_types_owned: [ImpactAnalysis]
+    operations:
+      - analyze_change: "Product A schema change → which downstream products break?"
+      - calculate_blast_radius: "How many hops affected? How many consumers?"
+      - notify_consumers: "Alert all downstream domains BEFORE breaking change"
+      - provide_migration: "Offer migration path (upgrade guide, compatibility layer)"
+      - track_acknowledgment: "Did all downstream teams acknowledge change?"
+
+  L3-007: Quality_Propagation_Tracker
+    purpose: "Track how SLO violations cascade through supply chain"
+    archetype_attribution: "Supply Chain Network"
+    pre_digital_analog: "Bad wheat → bad flour → bad bread (defect tracking)"
+    entity_types_owned: [QualityPropagation]
+    operations:
+      - detect_root_violation: "Product A broke freshness SLO"
+      - trace_downstream: "Which products depend on A? (follow lineage chain)"
+      - propagate_alert: "Notify all downstream: 'Your input is stale'"
+      - calculate_impact: "How many end consumers affected?"
+      - track_resolution: "Root cause fixed → clear propagation alerts"
+
+  L3-008: Provenance_Verifier
+    purpose: "Verify ethical sourcing through full lineage chain"
+    archetype_attribution: "Supply Chain Network"
+    pre_digital_analog: "Guild certifications, origin stamps on goods"
+    entity_types_owned: [DataLineage (compliance checks)]
+    operations:
+      - verify_compliance: "All upstream products meet governance policies?"
+      - check_pii_handling: "PII sources properly masked/encrypted?"
+      - validate_carbon_footprint: "Computational cost acceptable?"
+      - audit_sourcing: "Show me full provenance: Where did this data come from?"
+      - certify_product: "Green checkmark: 'Ethically sourced, compliant'"
 
 required_capabilities:
-  - Governance enforcement (OPA, cloud IAM, policy-as-code)
-  - Lineage extraction (OpenLineage, dbt, custom parsers)
-  - Lineage storage (Neo4j, PostgreSQL graph)
-  - Schema registry (Confluent Schema Registry, AWS Glue)
-  - Federated catalog (DataHub, OpenMetadata, Amundsen)
-  - Infrastructure-as-code (Terraform, Pulumi)
-  - Multi-tenancy (Kubernetes namespaces, cloud accounts)
+
+  # From Integration Platform Archetype
+  - Governance enforcement (OPA for policy-as-code, cloud IAM, automated validation)
+  - Schema registry (Confluent Schema Registry, AWS Glue Schema Registry)
+  - Federated catalog (DataHub, OpenMetadata, Amundsen for unified search)
+  - Infrastructure-as-code (Terraform, Pulumi for self-service platform)
+  - Multi-tenancy (Kubernetes namespaces, cloud accounts for domain isolation)
+
+  # From Supply Chain Network Archetype
+  - Lineage extraction (OpenLineage, dbt lineage, Spark lineage parsers)
+  - Lineage storage (Neo4j graph database, PostgreSQL with pg_graph)
+  - Lineage visualization (NetworkX, D3.js force graphs for supply chain view)
+  - Impact analysis (Custom algorithms for blast radius calculation)
+  - Quality propagation (Event streaming for cascading SLO violations)
+  - Provenance tracking (Audit trail for compliance verification)
 
 ---
 
 ## Composition Integration Points
 
+**See**: `integration-contracts.md` for concrete contract examples (API schemas, event formats, database DDL)
+
 layer_1_to_layer_2:
   description: "Digital Twin defines domain boundaries, each domain operates marketplace"
+
   contracts:
-    - Domain boundaries: "Which domain owns which data? (from Domain_Registry)"
-    - Domain ownership: "Who can publish products for this domain? (from Domain_Ownership_Manager)"
-  flow:
-    - Domain_Registry (L1) → defines domains → Catalog_Manager (L2) organizes by domain
-    - DomainTeam (L1) → owns domain → Provider_Portal (L2) publishes products
-    - DomainMetrics (L1) → tracks domain health → Domain_Analytics (L1) + Quality_Rating_System (L2)
+    - name: "Domain Registry API"
+      format: "REST API (OpenAPI 3.0)"
+      purpose: "Catalog_Manager (L2) queries Domain_Registry (L1) for domain list"
+      example: "GET /api/v1/domains → returns BusinessDomain[]"
+      schema_location: "integration-contracts.md#contract-1"
+
+    - name: "Domain Ownership Events"
+      format: "Event Stream (Avro schema)"
+      purpose: "Provider_Portal (L2) syncs access control when ownership changes"
+      topic: "domain-ownership-events"
+      schema_location: "integration-contracts.md#contract-2"
+
+    - name: "Domain Metrics View"
+      format: "SQL Database View"
+      purpose: "Quality_Rating_System (L2) displays domain health alongside product quality"
+      view: "domain_health_metrics"
+      schema_location: "integration-contracts.md#contract-3"
+
+  data_flow:
+    - Domain_Registry (L1) → REST API → Catalog_Manager (L2) organizes catalog by domain
+    - Domain_Ownership_Manager (L1) → Kafka events → Provider_Portal (L2) updates permissions
+    - DomainMetrics (L1) → SQL view → Quality_Rating_System (L2) shows health
+
+  contract_enforcement:
+    - OpenAPI validation (Catalog_Manager rejects invalid requests)
+    - Avro schema validation (Kafka rejects malformed events)
+    - SQL foreign keys (referential integrity enforced)
 
 layer_2_to_layer_3:
   description: "Marketplaces publish to federated systems, governed by global policies"
+
   contracts:
-    - Data contracts: "Schema, SLOs for each product (validated by L3)"
-    - Global policies: "PII, encryption, retention (enforced by L3)"
-  flow:
-    - Catalog_Manager (L2) → publishes metadata → Federated_Catalog_Aggregator (L3)
-    - DataProduct (L2) → schema registered → Schema_Registry (L3)
-    - DataProduct (L2) → lineage extracted → Cross_Domain_Lineage_Tracker (L3)
-    - Provider_Portal (L2) → validates contract → Federated_Governance_Engine (L3)
+    - name: "Data Product Registration API"
+      format: "REST API (OpenAPI 3.0)"
+      purpose: "Provider_Portal (L2) registers products with Federated_Catalog (L3)"
+      example: "POST /api/v1/catalog/products → registers DataProduct with schema, SLOs, dependencies"
+      schema_location: "integration-contracts.md#contract-4"
+
+    - name: "Schema Registry Protocol"
+      format: "Confluent Schema Registry API"
+      purpose: "Provider_Portal (L2) registers Avro/Protobuf schemas for version management"
+      endpoint: "POST /subjects/{product_name}-value/versions"
+      schema_location: "integration-contracts.md#contract-5"
+
+    - name: "Lineage Extraction Events"
+      format: "Event Stream (OpenLineage standard)"
+      purpose: "Data pipelines (L2) emit lineage to Cross_Domain_Lineage_Tracker (L3)"
+      topic: "openlineage-events"
+      schema_location: "integration-contracts.md#contract-6"
+
+  data_flow:
+    - Provider_Portal (L2) → REST API → Federated_Catalog_Aggregator (L3) indexes product
+    - Provider_Portal (L2) → Schema Registry API → Schema_Registry (L3) validates compatibility
+    - Data Pipeline (L2) → OpenLineage events → Cross_Domain_Lineage_Tracker (L3) builds graph
+    - Federated_Governance_Engine (L3) → validates DataContract before accepting registration
+
+  contract_enforcement:
+    - Governance validation (L3 rejects products that violate PII policies)
+    - Schema compatibility checks (L3 blocks backward-incompatible changes)
+    - OpenLineage standard format (lineage events must conform to spec)
 
 layer_1_to_layer_3:
   description: "Platform operates at org level, serves all domains"
+
   contracts:
-    - Platform SLAs: "Uptime, performance guarantees"
-    - Cost allocation: "Chargeback per domain"
-  flow:
-    - Domain_Registry (L1) → lists all domains → Self_Serve_Data_Platform (L3) provisions resources
-    - DomainMetrics (L1) → cost tracking → cost allocated to domains
+    - name: "Platform Provisioning Webhook"
+      format: "Webhook (JSON Schema)"
+      purpose: "Domain_Registry (L1) triggers Self_Serve_Data_Platform (L3) to provision infrastructure"
+      event_types: ["domain.created", "domain.status_changed"]
+      schema_location: "integration-contracts.md#contract-7"
+
+    - name: "Cost Allocation Database"
+      format: "SQL Database Schema"
+      purpose: "DomainMetrics (L1) and Platform (L3) share cost data for chargeback"
+      schema: "cost_allocation"
+      tables: ["domain_costs", "platform_costs", "domain_total_costs (view)"]
+      schema_location: "integration-contracts.md#contract-8"
+
+  data_flow:
+    - Domain_Registry (L1) → Webhook → Self_Serve_Data_Platform (L3) provisions S3, DB, IAM
+    - DomainMetrics (L1) → SQL INSERT → cost_allocation.domain_costs
+    - Self_Serve_Data_Platform (L3) → SQL INSERT → cost_allocation.platform_costs
+    - Domain_Analytics (L1) → SQL SELECT → cost_allocation.domain_total_costs (combined view)
+
+  contract_enforcement:
+    - Webhook signature verification (prevent spoofed provisioning requests)
+    - Database foreign keys (domain_id must exist in business_domains table)
+    - SQL constraints (costs must be non-negative, month must be first of month)
 
 ---
 

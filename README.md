@@ -65,6 +65,43 @@ Requirements → Identify Levels → Apply Archetype Per Level → Define Integr
 3. **Minimize Data Stores**: 3 stores, not 6+ (reduce operational burden)
 4. **Separate Evolution Speeds**: UI ≠ API ≠ Workflow ≠ Data
 5. **Fitness Functions**: NFRs as automated tests
+6. **Archetype Completeness Predicts Adoption**: Incomplete pattern → Poor adoption
+
+## Predicting Adoption Success
+
+**Key Framework Capability**: Measure how completely an implementation matches its archetype to predict adoption rates.
+
+**Why this matters**:
+- Infrastructure alone ≠ Pattern (roads without shops = no commerce)
+- Incomplete marketplace (no discovery, no quality signals) → Buyers can't find sellers → Market dies
+- Partial implementation raises expectations, then disappoints → Trust lost
+
+**Archetype Completeness → Adoption Correlation**:
+```
+100% Completeness → 80-90% Adoption (full pattern)
+70% Completeness  → 50-60% Adoption (functional with gaps)
+40% Completeness  → 20-30% Adoption (critical gaps)
+15% Completeness  → 10-20% Adoption (infrastructure only)
+```
+
+**Real Example**: AWS Lake Formation Data Mesh
+- **Completeness**: 30% (implements access control only, missing discovery, quality signals, usage tracking)
+- **Predicted Adoption**: 15-30%
+- **Why**: Critical marketplace components missing → Consumers can't find products → Revert to emailing producers
+- **See**: `examples/data-mesh/aws-gap-analysis.md` for complete analysis
+
+**Methodology**: `docs/archetype-completeness-methodology.md` provides step-by-step process to:
+1. Identify target archetype from requirements
+2. Map all reality pattern components (pre-digital)
+3. Evaluate implementation completeness (score each component)
+4. Predict adoption rate (based on score)
+5. Identify gaps and remediation (prioritize critical components)
+
+**Use this to**:
+- Evaluate vendor solutions before purchasing
+- Predict if your project will get adopted
+- Prioritize roadmap (fix critical gaps first)
+- Justify budget (show ROI of closing gaps)
 
 ## Repository Structure
 
@@ -81,7 +118,8 @@ architecture-framework/
 │   └── data-mesh/             # Compositional archetypes (Digital Twin + Marketplace + Integration)
 │
 ├── docs/                      # Framework documentation
-│   └── compositional-archetypes.md
+│   ├── compositional-archetypes.md      # How archetypes compose
+│   └── archetype-completeness-methodology.md  # Predict adoption success
 │
 ├── archetypes/                # Detailed archetype documentation (coming soon)
 ├── templates/                 # Reusable YAML templates (coming soon)
@@ -141,7 +179,7 @@ See `skills/tech-stack-mapper.md` for full documentation.
 
 ## Solution Archetypes
 
-The framework catalogs 7 patterns discovered from reality:
+The framework catalogs 8 patterns discovered from reality:
 
 | Archetype | Pre-Digital Origins | Modern Software Examples |
 |-----------|---------------------|--------------------------|
@@ -152,6 +190,7 @@ The framework catalogs 7 patterns discovered from reality:
 | **Integration Platform** | Trade routes, postal systems, messenger networks | ERP ↔ CRM sync, legacy modernization, API orchestration |
 | **Collaboration Hub** | Town squares, guild halls, royal courts | Team chat, project collaboration, document collaboration |
 | **Marketplace/Portal** | Grand Bazaar (1455), Stock exchanges (1602), Medieval markets | E-commerce marketplace, SaaS app store, data product catalog |
+| **Supply Chain Network** | Silk Road (200 BC - 1400s AD), Medieval wool trade (Shepherd → Weaver → Tailor), Industrial manufacturing chains | Data mesh lineage, ETL pipelines (Bronze → Silver → Gold), Manufacturing execution systems, Food traceability (farm-to-fork) |
 
 **Key insight**: These patterns existed for centuries before software. Software simply implements them digitally.
 
