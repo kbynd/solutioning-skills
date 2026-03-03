@@ -1,4 +1,4 @@
-# Architecture Framework
+# Solutioning via Archetypes
 
 A systematic, archetype-based approach to solution architecture that **discovers patterns from reality** and shows how to implement them in software.
 
@@ -388,7 +388,7 @@ This framework is a work in progress. Contributions welcome:
 
 ## Authors
 
-- Kalyan Vennelakanti (Sonata Software)
+- Kalyan Vennelakanti 
 - Built with Claude (Anthropic)
 
 ## Version
