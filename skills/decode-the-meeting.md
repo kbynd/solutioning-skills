@@ -31,7 +31,7 @@ Understanding subtext is critical because:
 
 ### 1. Meeting Minutes
 **Format**: Word docs, PDFs, emails with meeting notes
-**Example**: Retail Store Opening Weekly SteerCo Minutes
+**Example**: Weekly SteerCo Minutes
 **Contains**:
 - Decisions made
 - Issues raised
@@ -79,7 +79,7 @@ Understanding subtext is critical because:
 
 **Keywords**: "manual", "slow", "inefficient", "error-prone", "time-consuming"
 
-**Example** (Retail Store Opening):
+**Example** (NSO):
 ```
 "Gate tracking is manual and slow. We're missing 30% of our deadlines."
 ```
@@ -99,7 +99,7 @@ Understanding subtext is critical because:
 
 **Keywords**: "because", "vendors don't", "team doesn't", "they never", "if only they would"
 
-**Example** (Retail Store Opening):
+**Example**  (NSO):
 ```
 "Because vendors don't update their status in the system"
 "Because construction doesn't tell us when they're delayed"
@@ -134,7 +134,7 @@ stakeholder_dynamics:
 - Upstream: "planning", "unrealistic timelines", "we weren't consulted", "they don't understand reality"
 - Downstream: "field teams", "don't follow process", "they don't care", "execution problems"
 
-**Example** (Retail Store Opening):
+**Example** (NSO):
 ```
 Upstream: "Planning gives us unrealistic timelines without consulting us"
 Downstream: "Field teams don't follow the gate process we designed"
@@ -205,7 +205,7 @@ organizational_dynamics:
 → Fear: If automated, I lose control (and visibility to executives)
 ```
 
-**Example** (Retail Store Opening - reading between lines):
+**Example** (NSO - reading between lines):
 
 **What they say** (Layer 1):
 ```
@@ -284,7 +284,7 @@ Actually want: "If we fail, I need to show I did everything right (not get fired
 Solution needed: Metrics showing my team's performance vs. others' failures
 ```
 
-**Example** (Retail Store Opening - true motivations):
+**Example** (NSO - true motivations):
 
 **What they say** (Layer 1):
 ```
@@ -1127,7 +1127,7 @@ requirements_extraction:
 
 ---
 
-## Complete Example: Retail Store Opening Gate Tracking
+## Complete Example:  NSO Gate Tracking
 
 ### Input: SteerCo Meeting Minutes (Excerpt)
 
@@ -1228,8 +1228,8 @@ ACTION ITEMS:
 requirements_extraction:
 
   project_context:
-    project_name: "Retail Store Opening - Automated Gate Tracking"
-    client: "Retail Store Chain"
+    project_name: "ald's RSO - Automated Gate Tracking"
+    client: "ald's"
     stakeholder: "Tech Lead (Sarah)"
     date: "2026-02-15"
     source: "Weekly SteerCo Meeting Minutes"
@@ -1466,7 +1466,7 @@ Solution: Build dashboard + automation + CRITICAL additions:
 
 ### Template 1: Meeting Minutes
 
-**Input**: Retail Store Opening Weekly SteerCo Minutes
+**Input**: ald's RSO Weekly SteerCo Minutes
 
 **Extract**:
 ```yaml
@@ -1840,4 +1840,4 @@ After extracting requirements:
 ## Examples
 
 - **Broker Verification**: See `examples/broker-verification/requirements.md` (extracted from AWS funding email)
-- **Retail Store Opening**: (Future) Extract from SteerCo meeting minutes
+- **ald's NSO**: (Future) Extract from SteerCo meeting minutes
