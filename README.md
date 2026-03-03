@@ -1,4 +1,4 @@
-# Solutioning Framework
+# Architecture Framework
 
 A systematic, archetype-based approach to solution architecture that **discovers patterns from reality** and shows how to implement them in software.
 
@@ -114,7 +114,7 @@ architecture-framework/
 │
 ├── examples/                  # Complete worked examples
 │   ├── broker-verification/   # Workflow Orchestrator (single archetype)
-│   ├── qsr-nso/         # Digital Twin (single archetype)
+│   ├── retail-store-opening/  # Digital Twin (single archetype)
 │   └── data-mesh/             # Compositional archetypes (Digital Twin + Marketplace + Integration)
 │
 ├── docs/                      # Framework documentation
@@ -183,7 +183,7 @@ The framework catalogs 8 patterns discovered from reality:
 
 | Archetype | Pre-Digital Origins | Modern Software Examples |
 |-----------|---------------------|--------------------------|
-| **Digital Twin** | Temple miniatures (Hampi), Delta Works models (Rotterdam), architectural scale models | Franchise store construction tracking, manufacturing digital twins, IoT monitoring |
+| **Digital Twin** | Temple miniatures (Hampi), Delta Works models (Rotterdam), architectural scale models | Retail store construction tracking, manufacturing digital twins, IoT monitoring |
 | **Workflow Orchestrator** | Royal court approvals, guild certifications, multi-step inspections | Broker verification, purchase order approval, employee onboarding |
 | **System of Record** | Land registries, birth certificates, accounting ledgers, guild membership rolls | Customer MDM, product catalog, vendor registry |
 | **Analytics Platform** | Census records, trade statistics, astronomical observations | Sales analytics, operations reporting, ML forecasting |
@@ -327,8 +327,8 @@ The framework is built on proven principles:
 **Cost**: $774-$5,274/month POC, $600-$5,500/month production
 **See**: `examples/broker-verification/`
 
-### QSR's NSO (Digital Twin)
-**Domain**: Restaurant construction and tech installation
+### Retail Store Opening (Digital Twin)
+**Domain**: Retail store construction and tech installation
 **Problem**: Track 195 stores/year, 95% on-time gate completion
 **Archetype**: Digital Twin with Ontology-Based Operations
 **Technologies**: Microsoft Fabric IQ Ontology, Lakehouse, Event Hubs
@@ -384,11 +384,11 @@ This framework is a work in progress. Contributions welcome:
 
 ## License
 
-[To be determined]
+[To be determined - Open source or Sonata proprietary]
 
 ## Authors
 
-- Kalyan Vennelakanti 
+- Kalyan Vennelakanti (Sonata Software)
 - Built with Claude (Anthropic)
 
 ## Version
