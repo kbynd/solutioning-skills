@@ -114,7 +114,7 @@ architecture-framework/
 │
 ├── examples/                  # Complete worked examples
 │   ├── broker-verification/   # Workflow Orchestrator (single archetype)
-│   ├── retail-store-opening/         # Digital Twin (single archetype)
+│   ├── qsr-nso/         # Digital Twin (single archetype)
 │   └── data-mesh/             # Compositional archetypes (Digital Twin + Marketplace + Integration)
 │
 ├── docs/                      # Framework documentation
@@ -327,7 +327,7 @@ The framework is built on proven principles:
 **Cost**: $774-$5,274/month POC, $600-$5,500/month production
 **See**: `examples/broker-verification/`
 
-### Retail Store Opening (Digital Twin)
+### QSR's NSO (Digital Twin)
 **Domain**: Restaurant construction and tech installation
 **Problem**: Track 195 stores/year, 95% on-time gate completion
 **Archetype**: Digital Twin with Ontology-Based Operations
