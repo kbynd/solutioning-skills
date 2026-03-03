@@ -388,7 +388,7 @@ This framework is a work in progress. Contributions welcome:
 
 ## Authors
 
-- Kalyan Vennelakanti (Sonata Software)
+- Kalyan Vennelakanti 
 - Built with Claude (Anthropic)
 
 ## Version
