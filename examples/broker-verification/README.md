@@ -1,14 +1,12 @@
 # Broker Verification Automation - Complete Example
 
-This folder contains a complete worked example of applying the architecture framework to a real-world project: **PennyMac Counterparty Risk - Broker Verification Automation**.
+This folder contains a complete worked example of applying the architecture framework to a real-world project: ** Counterparty Risk - Broker Verification Automation**.
 
 ## Project Overview
 
-**Client**: PennyMac Financial Services
 **Team**: Production Back Office - Counterparty Risk
 **Challenge**: Manual 10-step broker verification process taking 1 day per broker
 **Goal**: AI-driven automation reducing to <2 hours with >90% accuracy
-**Platform**: AWS (POC funded by AWS)
 
 ## What's in This Example
 
@@ -73,7 +71,7 @@ This folder contains a complete worked example of applying the architecture fram
 ## How This Example Was Created
 
 ### Step 1: Requirements Discovery
-1. Read the AWS funding request email
+1. Read the request email
 2. Extract business problem, current process, proposed solution
 3. Identify NFRs (performance, accuracy, cost, compliance)
 4. Document in `requirements.md`
