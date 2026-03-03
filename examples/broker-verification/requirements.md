@@ -2,13 +2,13 @@
 
 ## Project Context
 
-**Source**: AWS Funding POC Request (Feb 2026)
-**Team**: PennyMac Production Back Office - Counterparty Risk
+**Source**: POC Request (Feb 2026)
+**Team**:  Production Back Office - Counterparty Risk
 **Channels**: TPO (Third-Party Origination) and PCG (Private Client Group)
 
 ## Business Problem
 
-The Counterparty Risk team verifies brokers entering the PennyMac network. The current process is highly manual, time-consuming, and error-prone.
+The Counterparty Risk team verifies brokers entering the Financier network. The current process is highly manual, time-consuming, and error-prone.
 
 **Pain Points:**
 - High volume of broker applications (new + renewals)
