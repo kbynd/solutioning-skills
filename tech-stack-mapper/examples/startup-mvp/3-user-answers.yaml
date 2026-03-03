@@ -1,0 +1,105 @@
+# User Answers - Startup MVP Example
+
+## Raw Answers
+
+q1_team_size: "a (5 engineers total)"
+q2_deadline: "b (3 months - end of Q1)"
+q3_who_runs_production: "a (developers will handle it)"
+q4_budget: "a (<$1M - we have $500K runway)"
+q5_existing_skills: "Python, AWS (basic - EC2, S3, RDS), Postgres, Docker (basic)"
+
+q6_platform_team: "a (no dedicated SRE, developers handle ops)"
+q7_learning_appetite: "a (low - must ship product features fast)"
+q8_availability: "b (business hours critical, off-hours tolerable)"
+q9_compliance: "None (B2B SaaS, no PII yet)"
+q10_primary_fear: "d (complexity - team can't operate it)"
+
+q11_funding_stage: "a (pre-seed, $500K runway)"
+q12_oncall: "a (no formal on-call, whoever's awake)"
+q13_2am_failure: "a (wake up a developer - but would rather avoid)"
+q14_tech_preference: "c (boring, proven tech - founder's philosophy)"
+q15_mandates: "Focus on product, not infrastructure (founder mandate)"
+
+---
+
+## Structured Constraint Profile
+
+constraint_profile:
+  
+  organization:
+    team_size: 5
+    budget: "$500K runway (12 month runway to profitability)"
+    stage: "pre-seed startup"
+    age: "3 months old"
+  
+  time_constraints:
+    deadline: "3 months (end of Q1)"
+    deadline_severity: "important (miss quarterly OKR)"
+    consequence_of_delay: "Frustrate stakeholders, delay product features"
+    competitive_pressure: "moderate (internal efficiency initiative)"
+  
+  team_capabilities:
+    existing_skills:
+      - "Python (all 5 engineers)"
+      - "AWS (basic - EC2, S3, RDS)"
+      - "Postgres (3 engineers)"
+      - "Docker (basic - 2 engineers)"
+    kubernetes_experts: 0
+    senior_engineers: 1
+    platform_team: false
+    learning_appetite: "low (must ship product features)"
+    hiring_capacity: "cannot hire (no budget)"
+  
+  existing_investments:
+    infrastructure: "AWS (have $25K credits)"
+    vendor_contracts: []
+    sunk_costs: "None (greenfield)"
+    technical_debt: "None (new initiative)"
+    change_capacity: "high (greenfield)"
+  
+  operational_reality:
+    who_runs_production: "developers on-call (no dedicated SRE)"
+    availability_requirement: "business hours critical (9am-6pm)"
+    oncall_setup: "informal (no rotation, whoever's awake)"
+    support_capacity: "figure it out ourselves (StackOverflow, docs)"
+    2am_scenario: "wake up developer (but want to avoid)"
+  
+  support_expectations:
+    support_model: "community support acceptable for non-critical"
+    acceptable_downtime: "1 hour during business hours, all weekend OK"
+    security_patch_urgency: "within 1 week for critical"
+  
+  compliance:
+    regulations: []
+    data_residency: "no restrictions"
+    audit_requirements: "basic logging sufficient"
+    cloud_allowed: true
+  
+  risk_tolerance:
+    tech_preference: "boring, proven (founder philosophy: 'be boring')"
+    build_vs_buy: "prefer buy (focus on product)"
+    past_trauma: "Founder's previous startup over-engineered infrastructure, ran out of cash before product-market fit"
+    primary_fear: "complexity (team can't operate complicated systems)"
+    secondary_fear: "distraction (spending time on infrastructure vs product)"
+  
+  political:
+    decision_authority: "CTO (founder)"
+    mandates: ["Focus on product, not infrastructure", "Use what we know"]
+    vendor_relationships: ["AWS (have $25K credits)"]
+    resume_driven: "none (team focused on product, not resume)"
+
+---
+
+## Key Constraints Summary
+
+**Most Critical Constraints** (drives decision):
+1. ✓ **Small team (5 people)** - Can't spare FTE on operations
+2. ✓ **3 month deadline** - Need fast time to market
+3. ✓ **No ops team** - Developers already stretched
+4. ✓ **Low learning appetite** - No time to learn Kubernetes, complex systems
+5. ✓ **Founder trauma** - Previous startup died from infrastructure over-engineering
+
+**Secondary Constraints**:
+- Budget conscious ($500K runway)
+- Boring tech preference (proven, not bleeding edge)
+- Focus mandate (product > infrastructure)
