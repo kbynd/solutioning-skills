@@ -1576,7 +1576,7 @@ timeline:
 
 **Why this format**: Forces architect to connect explicit requirements to political motivations, ensuring both are addressed.
 
-**See**: `examples/retail-store-gate-tracking/requirements.md` for complete example
+**See**: `examples/nso-gate-tracking/requirements.md` for complete example
 
 ---
 
