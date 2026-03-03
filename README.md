@@ -183,7 +183,7 @@ The framework catalogs 8 patterns discovered from reality:
 
 | Archetype | Pre-Digital Origins | Modern Software Examples |
 |-----------|---------------------|--------------------------|
-| **Digital Twin** | Temple miniatures (Hampi), Delta Works models (Rotterdam), architectural scale models | Retail Chain store construction tracking, manufacturing digital twins, IoT monitoring |
+| **Digital Twin** | Temple miniatures (Hampi), Delta Works models (Rotterdam), architectural scale models | Franchise store construction tracking, manufacturing digital twins, IoT monitoring |
 | **Workflow Orchestrator** | Royal court approvals, guild certifications, multi-step inspections | Broker verification, purchase order approval, employee onboarding |
 | **System of Record** | Land registries, birth certificates, accounting ledgers, guild membership rolls | Customer MDM, product catalog, vendor registry |
 | **Analytics Platform** | Census records, trade statistics, astronomical observations | Sales analytics, operations reporting, ML forecasting |
