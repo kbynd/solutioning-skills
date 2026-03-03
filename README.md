@@ -1,4 +1,4 @@
-# Architecture Framework
+# Solutioning Framework
 
 A systematic, archetype-based approach to solution architecture that **discovers patterns from reality** and shows how to implement them in software.
 
