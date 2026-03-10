@@ -4,7 +4,9 @@
 
 **Pattern Origin**: Pre-digital (ancient trade routes, manufacturing chains)
 
-**Core Pattern**: Multi-stage transformation flow where independent parties each add value and end-to-end visibility enables trust through provenance tracking.
+**Core Pattern**: Multi-stage transformation flow where entities (organizations, teams, or systems) each add value, and end-to-end visibility enables trust through provenance tracking.
+
+**Key Insight**: The archetype defines the PATTERN (multi-stage flow, provenance, quality propagation). The DIMENSIONS of your specific scenario determine which technologies are appropriate.
 
 ---
 
@@ -63,65 +65,743 @@ Marketplace (sold to consumers)
 
 ---
 
+## Archetype Dimensions
+
+**Critical insight**: Supply Chain Network is a PATTERN, not a technology prescription. Your scenario's position on these dimensions determines which technologies are appropriate.
+
+### Dimension 1: Ownership Structure
+
+**Question**: Who owns the stages in the chain?
+
+| Value | Description | Technology Implications |
+|-------|-------------|------------------------|
+| **Single Organization** | One company owns all stages (bronze → silver → gold) | Traditional (PostgreSQL, Kafka) - no multi-party problem |
+| **Multiple Teams** | Independent teams within one org (Data Mesh domains) | Lightweight consensus (schema registry, catalogs) - moderate trust |
+| **Multiple Organizations** | Independent companies (pharma, distributors, retailers) | Heavy consensus (blockchain, contracts) - low trust |
+
+### Dimension 2: Trust Boundaries
+
+**Question**: Do parties fully trust each other?
+
+| Value | Description | Technology Implications |
+|-------|-------------|------------------------|
+| **Implicit Trust** | Single org or long-term contracts (established suppliers) | Traditional APIs, databases - trust assumed |
+| **Regulated Trust** | Multiple parties, regulatory oversight (FDA-monitored pharma) | Blockchain with transparency - regulator as arbiter |
+| **Zero Trust** | Competitive parties, no central arbiter (conflict minerals) | Blockchain + ZKP - cryptographic trust only |
+
+### Dimension 3: Transparency Requirements
+
+**Question**: Should all data be visible to all parties?
+
+| Value | Description | Technology Implications |
+|-------|-------------|------------------------|
+| **Full Transparency** | Public benefit from openness (food safety, charity) | Public blockchain OR traditional with open APIs |
+| **Selective Disclosure** | Prove claims without revealing data (pharma compliance) | Zero-Knowledge Proofs - prove without showing |
+| **Complete Privacy** | No external visibility (internal processes) | Traditional private databases |
+
+### Dimension 4: Competitive Concerns
+
+**Question**: Do parties compete and protect trade secrets?
+
+| Value | Description | Technology Implications |
+|-------|-------------|------------------------|
+| **No Competition** | Parties cooperate (food safety, disaster relief) | Full transparency OK - blockchain without ZKP |
+| **Moderate Competition** | Some shared interests (industry consortiums) | Selective fields public, sensitive fields private |
+| **Intense Competition** | Supplier network is competitive advantage (electronics sourcing) | ZKP essential - prove without revealing |
+
+### Dimension 5: Transformation Stages
+
+**Question**: How many stages does material flow through?
+
+| Value | Description | Technology Implications |
+|-------|-------------|------------------------|
+| **2-3 Stages** | Simple flow (source → process → consume) | Lightweight lineage tracking |
+| **4-10 Stages** | Moderate complexity (typical data pipelines) | Graph database for lineage queries |
+| **10+ Stages** | High complexity (deep manufacturing chains) | Specialized lineage platforms, performance critical |
+
+### Dimension 6: Material Type
+
+**Question**: What flows through the chain?
+
+| Value | Description | Technology Implications |
+|-------|-------------|------------------------|
+| **Physical Goods** | Tangible products (food, electronics, drugs) | IoT sensors, RFID, GPS tracking |
+| **Data** | Digital information (data products, analytics) | Metadata management, schema registries |
+| **Hybrid** | Physical + Digital (IoT data about physical goods) | Integration of both tracking systems |
+
+### Dimension 7: Provenance Criticality
+
+**Question**: How important is knowing origin?
+
+| Value | Description | Technology Implications |
+|-------|-------------|------------------------|
+| **Regulatory Requirement** | Must trace for compliance (FDA, EU regulations) | Immutable audit trail - blockchain or append-only logs |
+| **Business Value** | Competitive differentiation (ethical sourcing labels) | Certifiable provenance - signed records |
+| **Nice to Have** | Operational insights only (internal optimization) | Lightweight lineage - database with foreign keys |
+
+### Dimension 8: Quality Propagation
+
+**Question**: Do upstream defects impact downstream?
+
+| Value | Description | Technology Implications |
+|-------|-------------|------------------------|
+| **Critical Propagation** | Upstream failure breaks downstream (data dependencies) | Event streaming for real-time alerts (Kafka) |
+| **Moderate Propagation** | Upstream affects quality but doesn't break (degraded SLOs) | Batch monitoring, daily quality reports |
+| **Isolated Stages** | Each stage independent (no dependencies) | Not really a supply chain - reconsider archetype |
+
+### Dimension 9: Regulatory Requirements
+
+**Question**: What regulatory oversight exists?
+
+| Value | Description | Technology Implications |
+|-------|-------------|------------------------|
+| **Heavy Regulation** | FDA, EMA, financial regulations (pharma, banking) | Immutable audit trail, ZKP for privacy + compliance |
+| **Light Regulation** | Industry standards, voluntary compliance | Self-certification, traditional audit logs |
+| **No Regulation** | Internal processes only | Optimize for cost/performance, not compliance |
+
+---
+
+## Dimension Combinations → Technology Selection
+
+**How to use dimensions**: Evaluate your scenario against each dimension, then select technology based on the combination.
+
+### Example 1: Internal Data Pipeline (Bronze-Silver-Gold)
+
+```yaml
+dimensions:
+  ownership: "Single Organization"
+  trust_boundaries: "Implicit Trust"
+  transparency: "Complete Privacy"
+  competitive_concerns: "No Competition"
+  stages: "3 stages (bronze → silver → gold)"
+  material_type: "Data"
+  provenance_criticality: "Nice to Have"
+  quality_propagation: "Critical Propagation"
+  regulatory: "No Regulation"
+
+technology_selection:
+  rationale: "Single org + No trust boundaries + No regulation = Traditional stack"
+  data_store: "PostgreSQL (foreign keys for lineage)"
+  streaming: "Kafka (quality propagation events)"
+  lineage: "dbt lineage or custom SQL parsing"
+  cost: "Low ($100-$1K/month)"
+
+NOT_blockchain_because:
+  - "No multi-party trust problem (single org)"
+  - "No regulatory immutability requirement"
+  - "Blockchain adds cost with zero value"
+```
+
+### Example 2: Food Safety Traceability
+
+```yaml
+dimensions:
+  ownership: "Multiple Organizations (farms, processors, retailers)"
+  trust_boundaries: "Regulated Trust (FDA oversight)"
+  transparency: "Full Transparency (public benefit)"
+  competitive_concerns: "No Competition (cooperate for safety)"
+  stages: "5-7 stages (farm → processor → distributor → retail)"
+  material_type: "Physical Goods (with digital tracking)"
+  provenance_criticality: "Regulatory Requirement (FDA Traceability Rule)"
+  quality_propagation: "Critical (E. coli outbreak must trigger recall)"
+  regulatory: "Heavy (FDA FSMA)"
+
+technology_selection:
+  rationale: "Multi-party + Regulatory + Full transparency = Blockchain (no ZKP)"
+  consensus: "Proof of Authority (known participants: farms, processors)"
+  platform: "Hyperledger Fabric, IBM Food Trust"
+  on_chain: "Ownership transfers, batch IDs, certifications"
+  iot: "Temperature sensors, GPS tracking"
+  cost: "Medium ($5K-$20K/month)"
+
+blockchain_justified_because:
+  - "Multi-party trust boundary (farms ≠ processors ≠ retailers)"
+  - "Regulatory immutability (FDA requires 24-hour trace)"
+  - "No single party should control records"
+
+NOT_zkp_because:
+  - "Full transparency is THE GOAL (food safety)"
+  - "No competitive concerns (cooperate for public health)"
+```
+
+### Example 3: Pharmaceutical Compliance
+
+```yaml
+dimensions:
+  ownership: "Multiple Organizations (pharma, distributors, pharmacies)"
+  trust_boundaries: "Zero Trust (competitors)"
+  transparency: "Selective Disclosure (prove compliance, hide secrets)"
+  competitive_concerns: "Intense Competition (supplier network = advantage)"
+  stages: "4-6 stages (manufacturing → distribution → pharmacy)"
+  material_type: "Physical Goods (drugs)"
+  provenance_criticality: "Regulatory Requirement (FDA, EMA)"
+  quality_propagation: "Critical (cold chain breaks → product ruined)"
+  regulatory: "Heavy (FDA, EMA, serialization requirements)"
+
+technology_selection:
+  rationale: "Multi-party + Competitive + Selective disclosure = Blockchain + ZKP"
+  consensus: "Proof of Authority (known pharma companies)"
+  privacy: "Zero-Knowledge Proofs (zk-SNARKs or zk-STARKs)"
+  platform: "Custom (Zcash libraries, StarkNet, or Polygon zkEVM)"
+
+  on_chain_public:
+    - "Hash of batch record (tamper-proof)"
+    - "ZKP: 'Made in FDA-approved facility' (NO facility ID)"
+    - "ZKP: 'Temperature 2-8°C maintained' (NO sensor data)"
+    - "Ownership transfers (custody chain)"
+
+  off_chain_private:
+    - "Actual facility locations (supplier identity - trade secret)"
+    - "Manufacturing processes (intellectual property)"
+    - "Batch volumes (production capacity)"
+    - "Costs (pricing strategy)"
+
+  cost: "High ($20K-$100K/month operational)"
+
+zkp_justified_because:
+  - "Must prove FDA compliance (regulatory)"
+  - "Must hide suppliers (competitors would poach)"
+  - "Trade secret value > ZKP cost ($1M+ competitive advantage)"
+  - "NO other way to satisfy: Compliance AND Privacy"
+
+blockchain_justified_because:
+  - "Multi-party distrust (pharma companies compete)"
+  - "No single trusted party (everyone has incentive to cheat)"
+  - "Immutable audit (FDA serialization requirements)"
+```
+
+### Example 4: Data Mesh Cross-Domain Lineage
+
+```yaml
+dimensions:
+  ownership: "Multiple Teams (domain teams within one org)"
+  trust_boundaries: "Implicit Trust (same company)"
+  transparency: "Complete Privacy (internal only)"
+  competitive_concerns: "No Competition (internal teams)"
+  stages: "4-8 stages (Payments → Sales → Marketing → Analytics)"
+  material_type: "Data (data products)"
+  provenance_criticality: "Business Value (data quality)"
+  quality_propagation: "Critical (upstream SLO break → downstream affected)"
+  regulatory: "Light (PII/GDPR for some domains)"
+
+technology_selection:
+  rationale: "Multiple teams + Internal trust + Data = Lightweight consensus"
+  catalog: "DataHub, Collibra, or custom"
+  lineage: "OpenLineage, dbt, Spark lineage"
+  streaming: "Kafka (quality alerts)"
+  governance: "Schema registry (Confluent, AWS Glue)"
+  cost: "Low-Medium ($1K-$5K/month)"
+
+NOT_blockchain_because:
+  - "Same organization (no multi-party trust boundary)"
+  - "Teams trust each other (Conway's Law applies, but not adversarial)"
+  - "No regulatory immutability requirement"
+
+lightweight_consensus_sufficient:
+  - "Schema registry (teams agree on contracts)"
+  - "Catalog (teams register data products)"
+  - "SLO monitoring (teams held accountable)"
+```
+
+---
+
+## Trust Boundaries and Technology Enablers
+
+**Note**: This section maps dimensions to technologies. Reference the dimension combinations above to understand WHEN each technology applies.
+
+**Critical distinction**: Supply Chain Networks have fundamentally different requirements based on whether parties have **trust boundaries** and **competitive concerns**.
+
+### Scenario 1: Single Organization (No Trust Boundaries)
+
+**Characteristics**:
+- One organization owns all stages (Bronze → Silver → Gold)
+- No ownership/custody transfer between independent parties
+- No competitive concerns (internal transparency is fine)
+- Trust is inherent (same company controls entire chain)
+
+**Examples**:
+- Bronze-silver-gold data lakehouse (internal refinement stages)
+- ETL pipelines within one company
+- Internal manufacturing execution systems
+
+**Technology**: Traditional integration (APIs, databases, message queues)
+- PostgreSQL with foreign keys for lineage
+- Kafka for event streaming
+- REST APIs for stage communication
+- **No blockchain needed** (no multi-party trust problem)
+
+### Scenario 2: Multi-Party Without Competitive Concerns
+
+**Characteristics**:
+- Multiple independent organizations (farms, processors, retailers)
+- Ownership/custody transfers between parties
+- **Full transparency is DESIRED** (food safety, regulatory compliance)
+- No trade secrets to protect (everyone benefits from openness)
+
+**Examples**:
+- Food safety traceability (FDA wants full visibility, farms/retailers cooperate)
+- Public sector procurement (transparency is the goal)
+- Charity donation tracking (prove funds reached destination)
+
+**Technology**: Traditional blockchain (full transparency)
+
+**Consensus mechanisms**:
+- **Proof of Work (PoW)**: Bitcoin-style, energy-intensive, maximum decentralization
+  - Use when: Maximum censorship resistance needed, no trusted parties
+  - Cost: High energy consumption
+
+- **Proof of Stake (PoS)**: Ethereum 2.0-style, validators stake tokens
+  - Use when: Want decentralization with lower energy cost
+  - Cost: Medium (validator infrastructure)
+
+- **Proof of Authority (PoA)**: Hyperledger-style, known validators
+  - Use when: Parties are known (e.g., registered food processors), need performance
+  - Cost: Low (permissioned network)
+
+**Platforms**: Hyperledger Fabric (PoA), Ethereum (PoS), Corda (notary consensus)
+
+**Why blockchain vs traditional**:
+- ✅ Immutable audit trail (regulatory requirement)
+- ✅ Multi-party consensus (no single party controls records)
+- ✅ Tamper-proof provenance (can't retroactively falsify origin)
+- ❌ NOT for privacy (everyone sees everything)
+
+### Scenario 3: Multi-Party WITH Competitive Concerns
+
+**Characteristics**:
+- Multiple independent organizations (pharmaceutical companies, electronics manufacturers)
+- Ownership/custody transfers between parties
+- **Need to prove claims WITHOUT revealing trade secrets**
+- Competitive concerns (revealing suppliers/processes helps competitors)
+
+**Examples**:
+- **Pharmaceutical supply chain**: Prove FDA compliance, hide manufacturing process
+- **Conflict minerals**: Prove ethical sourcing, hide supplier network/pricing
+- **Carbon offsets**: Prove offset legitimacy, hide total emissions/future projections
+- **Luxury goods**: Prove authenticity, hide production costs/volumes
+
+**Technology**: Blockchain + **Zero-Knowledge Proofs (ZKP)**
+
+**The Privacy Problem**:
+```
+Traditional blockchain:
+  ✅ Multi-party trust (no one controls records)
+  ❌ Full transparency (everyone sees everything)
+  ❌ Trade secrets exposed (competitors see suppliers, volumes, costs)
+
+Private databases:
+  ✅ Privacy (data hidden from competitors)
+  ❌ No proof (can't verify claims to external parties)
+  ❌ Single party control (can be falsified)
+
+Zero-Knowledge Proofs:
+  ✅ Multi-party trust (blockchain benefits)
+  ✅ Privacy (underlying data hidden)
+  ✅ Provable claims (can verify without seeing data)
+```
+
+**How Zero-Knowledge Proofs Work**:
+
+**Example: Pharmaceutical Compliance**
+```
+Manufacturer wants to prove:
+  "This drug was made in FDA-approved facility"
+  "Temperature maintained <8°C throughout transport"
+
+WITHOUT revealing:
+  - Which specific facility (supplier identity)
+  - Manufacturing process details
+  - Production volumes
+  - Cost structure
+
+ZKP enables:
+  - Prove: "temperature < 8°C" (verifiable by FDA)
+  - Hide: Actual temperature readings, sensor data, transport routes
+  - Result: Compliance proven, trade secrets protected
+```
+
+**Zero-Knowledge Proof Technologies**:
+
+**zk-SNARKs** (Zero-Knowledge Succinct Non-Interactive Argument of Knowledge):
+- **Characteristics**: Very small proofs (few hundred bytes), fast verification
+- **Use when**: Need efficient verification, proof size matters
+- **Platforms**: Zcash, zkSync, Polygon zkEVM
+- **Tradeoff**: Requires trusted setup (potential vulnerability)
+
+**zk-STARKs** (Zero-Knowledge Scalable Transparent Argument of Knowledge):
+- **Characteristics**: Larger proofs, but no trusted setup
+- **Use when**: Transparency critical (no trusted setup acceptable)
+- **Platforms**: StarkNet, StarkWare, Polygon Miden
+- **Tradeoff**: Larger proof size vs zk-SNARKs
+
+**Bulletproofs**:
+- **Characteristics**: No trusted setup, efficient range proofs
+- **Use when**: Proving values within ranges (e.g., "temperature < 8°C")
+- **Platforms**: Monero, Grin, custom implementations
+
+**Technology Stack for Competitive Supply Chains**:
+
+```yaml
+competitive_supply_chain:
+
+  consensus_layer:
+    mechanism: "Proof of Authority (PoA) for known partners"
+    rationale: "Supply chain parties are known (pharma companies, FDA)"
+    platforms: "Hyperledger Fabric, Quorum, Corda"
+
+  privacy_layer:
+    mechanism: "Zero-Knowledge Proofs (zk-SNARKs or zk-STARKs)"
+    rationale: "Prove compliance claims without revealing data"
+    platforms: "Zcash (zk-SNARKs), StarkNet (zk-STARKs)"
+
+  data_architecture:
+    on_chain: "Proofs, hashes, ownership transfers (public)"
+    off_chain: "Sensitive data (private databases)"
+    bridge: "ZKP circuit (prove statements about off-chain data)"
+
+  example_flow:
+    1: "Manufacturer stores sensitive data off-chain (private database)"
+    2: "Generates ZKP: 'Temperature < 8°C' (without revealing actual data)"
+    3: "Publishes proof + hash to blockchain (public, verifiable)"
+    4: "FDA verifies proof (confirms compliance without seeing raw data)"
+    5: "Competitors can't see: Suppliers, processes, volumes, costs"
+```
+
+**Real-World Example: Pharmaceutical Provenance**
+
+```yaml
+use_case: "Drug Supply Chain Verification"
+
+requirements:
+  prove: "FDA compliance (approved facility, temperature control)"
+  hide: "Manufacturing process, supplier identity, volumes"
+  parties: "Manufacturer, Distributor, Pharmacy, FDA (regulator)"
+
+without_zkp_problems:
+  public_blockchain: "Exposes all data (competitors see suppliers/volumes)"
+  private_database: "Can't prove claims to FDA (manufacturer controls data)"
+  hybrid_failed: "Reveal compliance OR hide data (can't have both)"
+
+with_zkp_solution:
+  on_chain:
+    - "Hash of batch record (tamper-proof)"
+    - "ZKP: 'Made in FDA-approved facility' (proof, no facility ID)"
+    - "ZKP: 'Temperature 2°C - 8°C maintained' (proof, no sensor data)"
+    - "Transfer events: Manufacturer → Distributor → Pharmacy (custody)"
+
+  off_chain_private:
+    - "Actual facility ID (supplier identity)"
+    - "Temperature sensor readings (transport route data)"
+    - "Batch volumes (production capacity)"
+    - "Manufacturing process (trade secret)"
+
+  verification:
+    fda: "Verify ZKPs confirm compliance (no raw data access)"
+    pharmacy: "Verify custody chain intact (provenance proven)"
+    competitors: "See compliance proven, can't extract trade secrets"
+```
+
+**Decision Framework: When to Use What**
+
+```yaml
+decision_tree:
+
+  single_organization:
+    question: "Does one company own all stages?"
+    if_yes:
+      technology: "Traditional (PostgreSQL, Kafka, APIs)"
+      rationale: "No multi-party trust problem"
+      examples: "Bronze-silver-gold, internal ETL"
+
+  multi_party_no_competition:
+    question: "Multiple parties, full transparency OK?"
+    if_yes:
+      technology: "Traditional Blockchain (PoA/PoS)"
+      rationale: "Multi-party trust, no privacy needed"
+      examples: "Food safety, public procurement, charity tracking"
+      platforms: "Hyperledger Fabric, Ethereum, Corda"
+
+  multi_party_competitive:
+    question: "Multiple parties, trade secrets to protect?"
+    if_yes:
+      technology: "Blockchain + Zero-Knowledge Proofs"
+      rationale: "Prove claims without revealing data"
+      examples: "Pharma compliance, conflict minerals, carbon offsets"
+      platforms: "Zcash (zk-SNARKs), StarkNet (zk-STARKs)"
+```
+
+**Cost Considerations**:
+
+| Technology | Setup Cost | Operational Cost | Use When |
+|-----------|-----------|------------------|----------|
+| Traditional (PostgreSQL, Kafka) | Low ($1K-$10K) | Low ($100-$1K/month) | Single org |
+| Blockchain (PoA) | Medium ($50K-$200K) | Medium ($5K-$20K/month) | Multi-party, no privacy |
+| Blockchain + ZKP | High ($200K-$1M+) | High ($20K-$100K/month) | Multi-party, competitive |
+
+**Technology is expensive, but so is competitive disadvantage**:
+- Revealing suppliers to competitors → Lost competitive advantage (multi-million $ impact)
+- Failed FDA audit → Product recall (multi-million $ impact)
+- **ZKP cost justified when**: Trade secret value > ZKP implementation cost
+
+---
+
 ## Modern Software Examples
 
-### Data Pipelines (ETL/ELT Chains)
+### ⚠️ IMPORTANT: Bronze-Silver-Gold is NOT Supply Chain Archetype
 
-**Data Supply Chain**:
+**Bronze-Silver-Gold Medallion Architecture**:
 ```
-Source Systems (raw data)
-   ↓
-Bronze Layer (raw ingestion)
-   ↓
-Silver Layer (cleaned, standardized)
-   ↓
-Gold Layer (aggregated, business-ready)
-   ↓
-Data Marts (domain-specific)
-   ↓
-Dashboards/Analytics (consumed by users)
+Source Systems → Bronze Layer → Silver Layer → Gold Layer → Analytics
 ```
 
-**Characteristics**:
-- Multi-stage transformation (each layer adds value)
-- Lineage tracking (where did this metric come from?)
-- Quality propagation (bad data at source → bad dashboards)
-- Impact analysis (schema change at bronze → breaks gold?)
+**Why NOT Supply Chain archetype**:
+- ❌ Single organization (no ownership transfer)
+- ❌ No trust boundaries (same company owns all layers)
+- ❌ No competitive concerns (internal transparency is fine)
+- ✅ **Actually a composition of three archetypes**:
+  - Bronze = Integration Platform (source ingestion)
+  - Silver = System of Record (canonical entities)
+  - Gold = Analytics Platform (decision support)
 
-### Data Mesh Prosumer Networks
+**See**: `docs/medallion-architecture-pattern.md` (if created) for proper classification
 
-**Cross-Domain Data Flow**:
+### Data Mesh Cross-Domain Lineage (TRUE Supply Chain)
+
+**When Data Mesh exhibits Supply Chain pattern**:
 ```
-Payments Domain (raw_transactions)
-   ↓
-Sales Domain (customer_360 - aggregated)
-   ↓
-Marketing Domain (campaign_performance - ML enriched)
-   ↓
-Executive Dashboard (business metrics)
+Payments Domain (owned by Payments team)
+   ↓ (data product: customer_transactions)
+Sales Domain (owned by Sales team)
+   ↓ (data product: customer_360)
+Marketing Domain (owned by Marketing team)
+   ↓ (data product: campaign_performance)
+Executive Dashboard (owned by Analytics team)
 ```
 
-**Characteristics**:
-- Each domain is prosumer (consumes from upstream, produces for downstream)
-- End-to-end lineage (Payments → Sales → Marketing → Dashboard)
-- Governance propagation (PII from Payments → must be masked in Marketing)
-- Carbon footprint (total compute cost of chain)
+**Supply Chain characteristics present**:
+- ✅ Multiple independent owners (different domain teams)
+- ✅ Ownership transfer (Payments → Sales → Marketing)
+- ✅ End-to-end lineage (trace metric to source domain)
+- ✅ Quality propagation (Payments SLO break → Marketing affected)
+- ✅ Impact analysis (Sales schema change → Marketing breaks)
+- ⚠️ Still single organization (no ZKP needed unless cross-company data sharing)
 
-### Manufacturing Execution Systems
+**Governance propagation**:
+- PII from Payments → must be masked in Marketing
+- Compliance at source → propagates through chain
+- Carbon footprint (total compute cost across domains)
+
+### Manufacturing Execution Systems (Single Organization)
 
 **Factory Floor Supply Chain**:
 - **Raw materials** → **Component assembly** → **Product assembly** → **Quality testing** → **Packaging** → **Shipping**
 - Real-time tracking (RFID, barcode scanning)
 - Defect tracking (which batch had issues?)
-- Traceability (food industry: farm-to-fork)
+- Traceability (internal quality control)
 
-### Container Shipping Logistics
+**Technology**: Traditional (APIs, databases, MES software)
+- Single organization owns all stages
+- No blockchain needed (no multi-party trust boundary)
+
+### Food Safety Traceability (Multi-Party, Full Transparency)
+
+**Farm-to-Fork Flow**:
+```
+Farm (lettuce grown)
+   ↓ (ownership transfer + provenance record)
+Processing Plant (washed, packaged)
+   ↓ (ownership transfer + quality certification)
+Distribution Center (stored, shipped)
+   ↓ (ownership transfer + temperature monitoring)
+Retail Store (sold to consumer)
+```
+
+**Supply Chain characteristics**:
+- ✅ Multiple independent organizations (farm, processor, distributor, retailer)
+- ✅ Ownership/custody transfers (each handoff is recorded)
+- ✅ Regulatory requirements (FDA traceability rule - must trace in 24 hours)
+- ✅ Full transparency desired (food safety benefits from openness)
+- ❌ NO competitive concerns (farms/retailers cooperate for safety)
+
+**Technology**: Blockchain with Proof of Authority (no ZKP needed)
+- **Platform**: Hyperledger Fabric, IBM Food Trust
+- **On-chain data**: Ownership transfers, batch IDs, facility certifications
+- **Why blockchain**: Multi-party trust, immutable audit trail, FDA compliance
+- **Why NOT ZKP**: Full transparency is the goal (no trade secrets to protect)
+
+**Real implementation**: Walmart + IBM Food Trust (trace lettuce in 2.2 seconds vs 7 days)
+
+### Pharmaceutical Supply Chain (Multi-Party, Competitive)
+
+**Drug Manufacturing to Pharmacy**:
+```
+Manufacturer (drug produced)
+   ↓ (prove: FDA-approved facility, temperature control)
+Distributor (transport)
+   ↓ (prove: cold chain maintained, no counterfeits)
+Pharmacy (dispensed to patient)
+```
+
+**Supply Chain characteristics**:
+- ✅ Multiple independent organizations (pharma companies, distributors, pharmacies)
+- ✅ Ownership/custody transfers (must prevent counterfeits)
+- ✅ Regulatory requirements (FDA, European Medicines Agency)
+- ✅ **Competitive concerns** (manufacturers don't want competitors seeing suppliers/volumes)
+
+**Technology**: Blockchain + Zero-Knowledge Proofs
+
+```yaml
+on_chain_public:
+  - "Hash of batch record (tamper-proof)"
+  - "ZKP: 'Made in FDA-approved facility' (NO facility ID revealed)"
+  - "ZKP: 'Temperature maintained 2-8°C' (NO sensor data revealed)"
+  - "Ownership transfers: Manufacturer → Distributor → Pharmacy"
+
+off_chain_private:
+  - "Actual facility location (supplier identity - trade secret)"
+  - "Manufacturing process (intellectual property)"
+  - "Batch volumes (production capacity - competitive info)"
+  - "Cost structure (pricing strategy)"
+
+verification:
+  - "FDA: Verify ZKPs confirm compliance (no access to trade secrets)"
+  - "Pharmacy: Verify custody chain intact, drug authentic"
+  - "Patients: Verify drug genuine (scan QR code, check blockchain)"
+```
+
+**Why ZKP essential**:
+- Prove FDA compliance WITHOUT revealing manufacturing locations (competitors can't identify suppliers)
+- Prove temperature control WITHOUT revealing transport routes (logistics strategy protected)
+- Multi-million dollar trade secrets protected while maintaining regulatory compliance
+
+**Platforms**: Custom implementation with zk-SNARKs or StarkNet
+
+### Conflict Minerals Tracking (Multi-Party, Competitive)
+
+**Electronics Supply Chain**:
+```
+Mine (cobalt extracted)
+   ↓ (prove: not from conflict zone)
+Refinery (cobalt processed)
+   ↓ (prove: ethical sourcing chain)
+Component Manufacturer (batteries produced)
+   ↓ (prove: conflict-free certification)
+Electronics OEM (smartphones assembled)
+```
+
+**Supply Chain characteristics**:
+- ✅ Multiple independent organizations (miners, refineries, manufacturers, OEMs)
+- ✅ Regulatory requirements (EU Conflict Minerals Regulation, Dodd-Frank)
+- ✅ **Extreme competitive concerns** (OEMs don't want competitors seeing supplier network)
+
+**Technology**: Blockchain + Zero-Knowledge Proofs
+
+```yaml
+prove_without_revealing:
+  claim: "Cobalt is ethically sourced (not from conflict zones)"
+
+  on_chain_zkp:
+    - "ZKP: 'Mine location NOT in conflict zone list' (NO exact location)"
+    - "ZKP: 'Refinery has ethical certification' (NO refinery identity)"
+    - "Hash of full supply chain (tamper-proof)"
+
+  off_chain_private:
+    - "Exact mine locations (competitive advantage)"
+    - "Refinery contracts (pricing, volumes)"
+    - "Alternative suppliers (backup strategy)"
+
+  impact:
+    - "Comply with regulations (avoid fines, maintain EU market access)"
+    - "Protect supplier network (competitors can't poach suppliers)"
+    - "Maintain competitive advantage (trade secrets secure)"
+```
+
+**Why ZKP critical**: Supplier network is multi-billion dollar competitive advantage
+
+### Container Shipping Logistics (Multi-Party, Selective Privacy)
 
 **Physical Goods Flow**:
 - **Factory** → **Inland port** → **Container ship** → **Destination port** → **Warehouse** → **Retail/Customer**
-- Track container location (GPS, port scans)
-- Provenance (certificate of origin)
-- Customs clearance at each stage
+
+**Technology**: Hybrid (Public blockchain for provenance + Private data for commercial terms)
+
+```yaml
+on_chain_public:
+  - "Container ID and location (GPS checkpoints)"
+  - "Customs clearance records (compliance)"
+  - "Certificate of origin (provenance)"
+
+off_chain_private:
+  - "Cargo contents (trade secret - what's being shipped)"
+  - "Commercial terms (pricing, contracts)"
+  - "Customer identity (shipper/receiver)"
+
+use_case:
+  - "Customs: Verify origin certificate (prevent smuggling)"
+  - "Insurance: Verify container location (claims validation)"
+  - "Competitors: Can't see what's being shipped or to whom"
+```
+
+**Why blockchain**: Multi-party coordination (shipping lines, ports, customs, insurance)
+**Why selective privacy**: Commercial terms competitive, provenance must be public
+
+---
+
+## ⚠️ When NOT to Use Blockchain
+
+**Blockchain is overhyped**. Use it ONLY when you have all three conditions:
+
+### Required Conditions for Blockchain
+
+1. **Multiple independent parties** (not single organization)
+2. **No single trusted party** (parties don't fully trust each other)
+3. **Immutable audit trail required** (regulatory, provenance, compliance)
+
+### Use Traditional Technology Instead If:
+
+❌ **Single organization**: Use PostgreSQL with foreign keys
+- "We have internal data pipeline" → NOT blockchain (no multi-party trust problem)
+- Bronze-silver-gold lakehouse → NOT blockchain (same company owns all layers)
+
+❌ **Parties already trust each other**: Use APIs with SLAs
+- "We have contracts with suppliers" → NOT blockchain (legal trust exists)
+- Established trading partners → APIs/EDI/message queues are simpler and cheaper
+
+❌ **No audit trail requirement**: Use message queues
+- "Just need data flow, no provenance" → NOT blockchain (Kafka is faster/cheaper)
+
+❌ **Performance critical**: Use traditional databases
+- "Need <10ms latency" → NOT blockchain (consensus adds latency)
+- "Need >10K TPS throughput" → NOT blockchain (limited by consensus)
+
+❌ **Don't need decentralization**: Use centralized database
+- "One party will be source of truth anyway" → NOT blockchain (just use their database)
+
+### Cost Reality Check
+
+**Traditional stack** (single org):
+- PostgreSQL + Kafka: ~$100-$1K/month
+- Mature ecosystem, well-understood operations
+
+**Blockchain (PoA)** (multi-party, no privacy):
+- Setup: $50K-$200K, Operations: $5K-$20K/month
+- Specialized skills needed
+
+**Blockchain + ZKP** (multi-party, competitive):
+- Setup: $200K-$1M+, Operations: $20K-$100K/month
+- Cutting-edge, limited talent pool
+
+**Only use blockchain if**: Multi-party trust problem value > Blockchain cost
+
+### Red Flags (Blockchain Snake Oil)
+
+🚩 "Blockchain makes it secure" → No, encryption + access control does
+🚩 "Blockchain makes it immutable" → No, append-only logs do
+🚩 "Blockchain makes it distributed" → No, replication does
+🚩 "We need blockchain for transparency" → No, public APIs do
+🚩 "Resume-driven development" → Avoid
+
+**Use blockchain ONLY for**: Multi-party scenarios where no party is fully trusted
 
 ---
 
@@ -491,7 +1171,56 @@ def test_blast_radius_calculation():
 - APIs = Integration Platform (connect systems)
 - Multi-stage flow + provenance = Supply Chain Network
 
-### Mistake 2: Manual Lineage Documentation
+### Mistake 2: Treating Bronze-Silver-Gold as Supply Chain
+
+**Wrong**: "Our bronze-silver-gold lakehouse is a supply chain archetype"
+
+**Right**: Bronze-silver-gold is **single organization data refinement**, NOT supply chain
+- ❌ No ownership transfer (same org owns all layers)
+- ❌ No trust boundaries (no competitive concerns)
+- ✅ **Actually a composition**: Integration Platform (bronze) + System of Record (silver) + Analytics Platform (gold)
+
+**Supply Chain requires**: Multi-party ownership OR independent domain teams with ownership transfer
+
+### Mistake 3: Using Blockchain for Single Organization
+
+**Wrong**: "Let's use blockchain for our internal data pipeline"
+
+**Right**: Blockchain is for **multi-party trust boundaries** ONLY
+- Single org → PostgreSQL + Kafka (10x cheaper, 100x simpler)
+- Blockchain adds: Cost, complexity, latency, specialized skills
+- Blockchain solves: Multi-party consensus (not a problem for single org)
+
+**Use blockchain ONLY when**: Multiple independent parties + No single trusted party + Immutable audit needed
+
+### Mistake 4: Using Blockchain Without Understanding Consensus
+
+**Wrong**: "Blockchain is blockchain, doesn't matter which one"
+
+**Right**: Consensus mechanism must match scenario
+- **Proof of Work (PoW)**: Maximum decentralization, high energy cost → Use for public/permissionless
+- **Proof of Stake (PoS)**: Decentralized, lower energy → Use for semi-public with token economics
+- **Proof of Authority (PoA)**: Known validators, fast → Use for permissioned supply chain partners
+
+**Wrong choice = wasted cost**: PoW for permissioned network = paying for censorship resistance you don't need
+
+### Mistake 5: Ignoring Zero-Knowledge Proofs for Competitive Scenarios
+
+**Wrong**: "We'll use public blockchain, everyone sees everything"
+
+**Right**: Competitive supply chains need **selective disclosure**
+
+**Without ZKP**:
+- ❌ Public blockchain → Competitors see suppliers, volumes, costs (lose competitive advantage)
+- ❌ Private database → Can't prove claims to regulators/customers (no trust)
+
+**With ZKP**:
+- ✅ Prove claims (FDA compliance, ethical sourcing) WITHOUT revealing trade secrets
+- ✅ Maintain competitive advantage while achieving regulatory compliance
+
+**Evaluate**: If trade secret value > ZKP cost ($200K-$1M), use ZKP
+
+### Mistake 6: Manual Lineage Documentation
 
 **Wrong**: "Developers document lineage in wiki pages"
 
@@ -500,7 +1229,7 @@ def test_blast_radius_calculation():
 - Developers forget to update
 - Use OpenLineage, dbt lineage, Spark lineage parsers
 
-### Mistake 3: Lineage Without Impact Analysis
+### Mistake 7: Lineage Without Impact Analysis
 
 **Wrong**: "We show lineage graphs, done"
 
@@ -510,7 +1239,7 @@ def test_blast_radius_calculation():
 - Provenance verification (compliance through chain)
 - Without these, lineage is just pretty diagrams with no value
 
-### Mistake 4: Ignoring Quality Propagation
+### Mistake 8: Ignoring Quality Propagation
 
 **Wrong**: "Each domain monitors own quality, independent"
 
@@ -519,7 +1248,7 @@ def test_blast_radius_calculation():
 - Must propagate alerts (notify downstream consumers)
 - Must track root cause (fix source, not symptoms)
 
-### Mistake 5: No Carbon Footprint Tracking
+### Mistake 9: No Carbon Footprint Tracking
 
 **Wrong**: "Just run all transformations, cost doesn't matter"
 
@@ -528,6 +1257,18 @@ def test_blast_radius_calculation():
 - Aggregate total chain cost
 - Optimize expensive stages first
 - Charge back to consumers (incentivize efficiency)
+
+### Mistake 10: Resume-Driven Blockchain Selection
+
+**Wrong**: "Let's use blockchain because it's cool / looks good on resume"
+
+**Right**: Use blockchain ONLY when you have clear multi-party trust problem
+- Check: Do we have multiple independent parties? (If no → STOP)
+- Check: Do they distrust each other? (If no → STOP)
+- Check: Is immutable audit required? (If no → STOP)
+- Check: Is blockchain cost < problem cost? (If no → STOP)
+
+**If any check fails**: Use traditional technology (APIs, databases, message queues)
 
 ---
 
