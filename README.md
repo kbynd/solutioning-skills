@@ -384,7 +384,7 @@ This framework is a work in progress. Contributions welcome:
 
 ## License
 
-[To be determined - Open source or Sonata proprietary]
+[To be determined]
 
 ## Authors
 
